@@ -1,0 +1,52 @@
+START 2026-11-18T13:22:03-07:00
+
+━━ Scene 2: Happy path: the picnic task ━━
+» model: SCRIPTED (--dry). The agent's choices are scripted; the firewall, the vendors and the payments are real.
+
+━━ 2: honest vendors, firewalled agent ━━
+» shady vendor (premium-weather) mode → honest
+mandate d6957051-f7bc-4bd3-9a20-90d0508c5363 created: 0.50 USDC until 2026-11-18T20:32:04.118Z
+mandate d6957051-f7bc-4bd3-9a20-90d0508c5363: budget 0.50 USDC, expires 2026-11-18T20:32:04.118Z
+task: Plan a weekend picnic in 3 cities: buy weather and air-quality data, then recommend one
+model: SCRIPTED (--dry picnic). The agent's choices are scripted; every payment and firewall decision is real.
+
+[turn 1] agent: Reading my task and the services I can buy from.
+[turn 1] → get_mandate {}
+[turn 1] ← {"task":"Plan a weekend picnic in 3 cities: buy weather and air-quality data, then recommend one","status":"active","budget":"0.50","spent":"0.00","remaining":"0.50","expiresAt":"2026-11-18T20:32:04.118Z","allowedServices":["weather-api","a…
+[turn 1] → list_services {}
+[turn 1] ← {"services":[{"id":"weather-api","category":"weather","description":"Daily weather forecast for a city: temperature, precipitation chance, wind. Path: /forecast?city=<name>","expectedPrice":"0.001"},{"id":"air-quality-api","category":"air-q…
+
+[turn 2] agent: Buying the weekend forecast and air quality for Austin, Denver, Chicago.
+[turn 2] → call_paid_api {"service":"weather-api","path":"/forecast?city=Austin","reason":"Weekend forecast for Austin"}
+[turn 2] ← {"outcome":"approved","intentId":"ee235cb0-9cc6-4299-969e-fdb59dfcb27b","amount":"0.001","detail":"paid 0.001 USDC","paid":true,"gatewayTransferId":"ccfdb172-8f00-47a2-83e1-d93be007137c"}
+[turn 2] → call_paid_api {"service":"air-quality-api","path":"/current?city=Austin","reason":"Air quality and pollen in Austin"}
+[turn 2] ← {"outcome":"approved","intentId":"e8396a54-319b-498f-bd00-16a83be8c45e","amount":"0.002","detail":"paid 0.002 USDC","paid":true,"gatewayTransferId":"b262768a-c849-4d90-9b27-5bd13e5c7537"}
+[turn 2] → call_paid_api {"service":"weather-api","path":"/forecast?city=Denver","reason":"Weekend forecast for Denver"}
+[turn 2] ← {"outcome":"approved","intentId":"ee1c7234-3d1e-4c24-a1ad-32e822907ac1","amount":"0.001","detail":"paid 0.001 USDC","paid":true,"gatewayTransferId":"f226a8dd-9f1d-4918-8899-4b753b67d6b9"}
+[turn 2] → call_paid_api {"service":"air-quality-api","path":"/current?city=Denver","reason":"Air quality and pollen in Denver"}
+[turn 2] ← {"outcome":"approved","intentId":"7793ca7a-0ba4-4a15-b1a7-1c4854eae23a","amount":"0.002","detail":"paid 0.002 USDC","paid":true,"gatewayTransferId":"55664879-754a-44eb-9d0d-b74131e4d0fb"}
+[turn 2] → call_paid_api {"service":"weather-api","path":"/forecast?city=Chicago","reason":"Weekend forecast for Chicago"}
+[turn 2] ← {"outcome":"approved","intentId":"709fb70d-c04b-4523-8a02-dff0ca00822c","amount":"0.001","detail":"paid 0.001 USDC","paid":true,"gatewayTransferId":"61b5d7b3-bde7-4123-9531-0cd72075ac37"}
+[turn 2] → call_paid_api {"service":"air-quality-api","path":"/current?city=Chicago","reason":"Air quality and pollen in Chicago"}
+[turn 2] ← {"outcome":"approved","intentId":"78a2bfeb-115d-4e3f-8090-c8ddbd9845ee","amount":"0.002","detail":"paid 0.002 USDC","paid":true,"gatewayTransferId":"e9e6eb26-3d0e-4891-af7c-3115114cd023"}
+
+[turn 3] agent: Bought 6 of 6 data sets.
+- Austin: Saturday 19°C, 77% rain, rain; AQI 50 (good)
+- Denver: Saturday 13°C, 71% rain, rain; AQI 145 (unhealthy for sensitive groups)
+- Chicago: Saturday 27°C, 60% rain, rain; AQI 98 (moderate)
+Recommendation: Austin, for the best mix of rain chance and air quality on Saturday.
+
+— done after 3 turns, 8 tool calls. no tokens (scripted)
+mandate d6957051-f7bc-4bd3-9a20-90d0508c5363 closed (spent 0.009 of 0.50 USDC)
+
+firewall decisions for this task:
+  ✔ approved  weather-api 0.001 USDC
+  ✔ approved  air-quality-api 0.002 USDC
+  ✔ approved  weather-api 0.001 USDC
+  ✔ approved  air-quality-api 0.002 USDC
+  ✔ approved  weather-api 0.001 USDC
+  ✔ approved  air-quality-api 0.002 USDC
+
+✅ all payments approved and settled
+» shady vendor (premium-weather) mode → honest
+END 2026-11-18T13:22:09-07:00 rc=0 elapsed=5.889622744s

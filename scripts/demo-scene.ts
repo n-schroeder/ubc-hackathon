@@ -159,7 +159,7 @@ function summarize(rows: Row[], step: Step, dry: boolean): boolean {
     }
   }
   const hit = step.expect ? rows.some((r) => r.rule && step.expect!.test(r.rule) && r.outcome !== "approved") : rows.length > 0 && rows.every((r) => r.outcome === "approved");
-  if (hit) console.log(paint(32, `\n✅ ${step.expect ? `blocked as expected (${step.expect.source.replace(/[\^$\\]/g, "")})` : "all payments approved and settled"}`));
+  if (hit) console.log(paint(32, `\n✅ ${step.expect ? `blocked as expected (${step.expect.source.replace(/[\^$\\]/g, "")})` : "all payments approved and paid (onchain settlement follows in a few minutes)"}`));
   else if (!dry) note(`⚠ ${step.liveMiss ?? "this take didn't show the expected decision"}. The live model is not deterministic: re-run for another take, or add --dry for the scripted one.`);
   else console.log(paint(31, `\n❌ expected ${step.expect?.source ?? "all approved"}, not seen`));
   return hit;
