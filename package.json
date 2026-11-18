@@ -11,6 +11,7 @@
     "spike:sign": "tsx scripts/spikes/circle-sign-eip3009.ts",
     "spike:pay": "tsx scripts/spikes/gateway-nanopayment.ts",
     "spike:usdc": "tsx scripts/spikes/usdc-domain.ts",
+    "dashboard:dev": "tsx scripts/dashboard-dev.ts",
     "typecheck": "tsc -p .",
     "test": "vitest run"
   },

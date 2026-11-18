@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agent Spending Firewall</title>
+  <meta name="color-scheme" content="dark light">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5l-8-3z' fill='%233987e5'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5l-8-3z"/><path class="logo-check" d="m8.5 12 2.5 2.5 4.5-5"/></svg>
+      <h1>Agent Spending Firewall</h1>
+      <span class="chip chip-arc" title="Arc testnet, chain id 5042002">Arc testnet · 5042002</span>
+    </div>
+    <dl class="stats" aria-label="Last 24 hours">
+      <div class="stat stat-spend">
+        <dt>Spent 24h</dt>
+        <dd><span id="stat-spent">$0.00</span><span class="stat-of"> / <span id="stat-budget">—</span></span></dd>
+        <div class="meter" aria-hidden="true"><div id="stat-spent-bar"></div></div>
+      </div>
+      <div class="stat"><dt>Decisions</dt><dd id="stat-decisions">0</dd></div>
+      <div class="stat"><dt>Denied</dt><dd id="stat-denied" class="tone-bad">0</dd></div>
+      <div class="stat"><dt>Awaiting human</dt><dd id="stat-pending">0</dd></div>
+    </dl>
+    <div id="conn" class="conn" data-state="connecting" role="status" aria-live="polite">
+      <span class="dot"></span><span id="conn-label">Connecting…</span>
+    </div>
+  </header>
+
+  <div id="auth" class="auth" hidden>
+    <div class="auth-card">
+      <h2>Admin token missing or invalid</h2>
+      <p>The dashboard needs the firewall's admin token. Open the link the firewall printed at startup
+        (<code>http://127.0.0.1:4020/#token=…</code>) or paste the token here.</p>
+      <form id="auth-form" class="row-form">
+        <input id="auth-input" type="password" autocomplete="off" placeholder="admin token" aria-label="Admin token" required>
+        <button class="btn btn-primary" type="submit">Connect</button>
+      </form>
+    </div>
+  </div>
+
+  <main class="layout">
+    <section class="panel panel-log" aria-labelledby="log-title">
+      <div class="panel-head">
+        <h2 id="log-title">Decision log</h2>
+        <span class="muted small" id="log-count"></span>
+        <div class="filters" role="group" aria-label="Filter decisions">
+          <button class="seg" data-filter="all" aria-pressed="true">All</button>
+          <button class="seg" data-filter="blocked" aria-pressed="false">Blocked</button>
+          <button class="seg" data-filter="paid" aria-pressed="false">Paid</button>
+        </div>
+      </div>
+      <div class="log-cols" aria-hidden="true">
+        <span>Time</span><span>Kind</span><span>Service / recipient</span><span class="num">Amount</span><span>Outcome</span>
+      </div>
+      <ol id="log" class="log" aria-live="off"></ol>
+      <p id="log-empty" class="empty">No decisions yet. Payment intents from the agent show up here as they are decided.</p>
+    </section>
+
+    <aside class="side">
+      <section class="panel" aria-labelledby="breaker-title">
+        <div class="panel-head"><h2 id="breaker-title">Velocity breaker</h2></div>
+        <div id="breaker" class="breaker" data-state="closed">
+          <div class="breaker-main">
+            <div class="breaker-state">
+              <span class="breaker-icon" aria-hidden="true"></span>
+              <div>
+                <div id="breaker-label" class="breaker-label">CLOSED</div>
+                <div id="breaker-sub" class="breaker-sub">Spending allowed</div>
+              </div>
+            </div>
+            <button id="breaker-reset" class="btn btn-danger-solid" hidden>Reset breaker</button>
+          </div>
+          <div id="breaker-why" class="breaker-why" hidden>
+            <code id="breaker-rule" class="rule"></code>
+            <div id="breaker-detail" class="breaker-detail"></div>
+            <div id="breaker-at" class="muted small"></div>
+          </div>
+        </div>
+        <div class="rate">
+          <div class="rate-head">
+            <div>
+              <div class="eyebrow">Spend rate, rolling 60 s</div>
+              <div class="rate-now"><span id="rate-now">$0.000</span><span class="rate-unit">/min</span></div>
+            </div>
+            <div class="rate-limit">limit <span id="rate-limit">—</span>/min</div>
+          </div>
+          <div id="chart" class="chart" role="img" aria-label="Spend rate over the last five minutes"></div>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="approvals-title">
+        <div class="panel-head">
+          <h2 id="approvals-title">Approval queue</h2>
+          <span id="approvals-count" class="count" hidden></span>
+        </div>
+        <ul id="approvals" class="approvals"></ul>
+        <p id="approvals-empty" class="empty">Nothing waiting. Payments over the human-approval threshold queue here.</p>
+      </section>
+
+      <section class="panel" aria-labelledby="mandates-title">
+        <div class="panel-head"><h2 id="mandates-title">Task mandates</h2></div>
+        <ul id="mandates" class="mandates"></ul>
+        <p id="mandates-empty" class="empty">No active mandate: the agent has zero spending authority.</p>
+        <details class="start-task" id="start-task">
+          <summary>Start a task</summary>
+          <form id="mandate-form" class="mandate-form">
+            <label class="field field-wide">Task
+              <input name="task" type="text" required maxlength="500" placeholder="Plan a weekend picnic in 3 cities…">
+            </label>
+            <label class="field">Budget (USDC)
+              <input name="budget" type="text" inputmode="decimal" pattern="\d+(\.\d{1,6})?" placeholder="0.50">
+            </label>
+            <label class="field">Expires in (min)
+              <input name="ttl" type="number" min="1" step="1" placeholder="10">
+            </label>
+            <label class="check"><input name="allowTransfers" type="checkbox"> Allow direct transfers</label>
+            <button class="btn btn-primary" type="submit">Create mandate</button>
+          </form>
+          <div id="mandate-result" class="mandate-result" hidden>
+            <span class="muted small">Mandate id for the agent:</span>
+            <div class="copy-row"><code id="mandate-new-id"></code><button id="mandate-copy" class="btn btn-small" type="button">Copy</button></div>
+          </div>
+          <p id="mandate-error" class="form-error" hidden></p>
+        </details>
+      </section>
+
+      <section class="panel" aria-labelledby="controls-title">
+        <div class="panel-head">
+          <h2 id="controls-title">Demo vendor</h2>
+          <span id="vendor-status" class="chip" data-state="unknown">checking…</span>
+        </div>
+        <div id="vendor-modes" class="segmented" role="group" aria-label="Malicious vendor mode"></div>
+        <p class="muted small vendor-url">Mode of the demo vendor at <code id="vendor-url"></code></p>
+      </section>
+    </aside>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+</body>
+</html>
