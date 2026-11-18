@@ -12,7 +12,7 @@ Circle Nanopayments let an agent spend in amounts too small and too fast for any
 - [Safety limits](#safety-limits)
 - [How it uses Arc](#how-it-uses-arc)
 - [Live evidence on Arc testnet](#live-evidence-on-arc-testnet)
-- [Setup](#setup)
+- [Setup](#setup) (and [**docs/TESTING.md**](docs/TESTING.md): verify it with no keys, read the chain, or do a full live run)
 - [Running the demo](#running-the-demo)
 - [What's next](#whats-next)
 
@@ -246,13 +246,17 @@ How a paid API call works: the vendor answers `402` with its terms → the firew
 | Honest vendor's payee (receives the nanopayments) | [`0x0D21…a5d1`](https://explorer.testnet.arc.io/address/0x0D21C234A68a6C00574d9360D7275896Ae00a5d1) |
 | Attacker address (demo, receive-only) | [`0x91D0…853d`](https://explorer.testnet.arc.io/address/0x91D09630a50b78650170205Eb3020D9907c2853d) |
 
+Every nanopayment the firewall wallet made can be listed from Circle's public Gateway API with no key; see [TESTING.md, level 2](docs/TESTING.md#level-2-read-the-chain-no-install).
+
 The live agent run through the firewall (Claude Sonnet 5.5) made 6 real nanopayments for weather and air-quality data across 3 cities, 0.009 USDC in total, then recommended a city.
 
 ---
 
 ## Setup
 
-You need **Node.js 22 or later** (developed on Node 24) and npm. Everything below is testnet only; no real money is involved.
+You need **Node.js 22.13 or later** (24 or 26 also work; developed on 24, see `.nvmrc`) and npm. Node 22.12 and earlier fail, because the ledger uses the built-in `node:sqlite`. Everything below is testnet only; no real money is involved.
+
+**Testing this without Noah's keys?** [`docs/TESTING.md`](docs/TESTING.md) has three levels: no keys at all (tests, red-team suite, a fake-payment dashboard), reading the onchain evidence with nothing installed, and a full live run with your own Circle and Anthropic keys.
 
 ### 1. Install and run the tests (no accounts needed)
 
@@ -266,6 +270,8 @@ npm run redteam    # the red-team suite with readable output (add --details for 
 
 The red-team suite drives the real firewall over its HTTP API with fake payments and no LLM, so it needs no keys, no network and no credit, and takes well under a second.
 
+To see the dashboard without any keys, run `npm run dashboard:dev` and open http://127.0.0.1:4020/#token=dev. It runs the real firewall API and checks with fake payments and synthetic agent traffic.
+
 ### 2. Accounts and keys (for live payments on Arc testnet)
 
 ```bash
@@ -277,8 +283,8 @@ Fill in `.env`:
 | Variable | Where it comes from | Used by |
 |---|---|---|
 | `TEST_API_KEY` | Circle developer console → API key (testnet), the full `TEST_API_KEY:<id>:<secret>` string | firewall only |
-| `ENTITY_SECRET` | Circle developer console → entity secret setup for Developer-Controlled Wallets | firewall only |
-| `FIREWALL_ADMIN_TOKEN` | any random string, e.g. `openssl rand -hex 16` (the launcher and dashboard need the same token the firewall uses) | firewall, launcher, dashboard |
+| `ENTITY_SECRET` | Circle developer console → entity secret setup for Developer-Controlled Wallets (generate it, then register its ciphertext with Circle before running `wallets:setup`) | firewall only |
+| `FIREWALL_ADMIN_TOKEN` | any random string, e.g. `openssl rand -hex 16`. **Required** for `demo:scene` and `npm run task`: the launcher and dashboard need the same token the firewall uses | firewall, launcher, dashboard |
 | `ANTHROPIC_API_KEY` | Anthropic console (a few dollars of credit is plenty; a run costs about $0.03). Optional if you only use `--dry`. | agent only |
 
 Then create the wallets:
