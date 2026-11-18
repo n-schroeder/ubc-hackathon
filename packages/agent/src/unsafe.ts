@@ -42,9 +42,11 @@ export class UnsafeBackend implements PaymentBackend {
     const signer = { address: this.address, signTypedData: (p: any) => this.account.signTypedData(p) };
     const r = await payQuote(url, q.required, q.option, signer as any);
     this.spent += q.quote.amount;
+    // Same shape the firewalled backend returns for an approved call, so the side-by-side demo differs only
+    // in who decides, not in what the model gets to see.
     return {
-      paid: true, amount: formatUsdc(q.quote.amount), payTo: q.quote.payTo, httpStatus: r.status,
-      gatewayTransferId: r.gatewayTransferId, data: r.data,
+      outcome: "approved", amount: formatUsdc(q.quote.amount), detail: `paid ${formatUsdc(q.quote.amount)} USDC`,
+      paid: true, gatewayTransferId: r.gatewayTransferId, data: r.data,
     };
   }
 

@@ -358,7 +358,7 @@ Everything here ships in the final submission. The MVP is "done" when every box 
 ### Agent
 - [x] F20. Claude tool-use loop with the five tools in §3.5 and no credentials.
 - [x] F21. A real demo task (default: "plan a weekend picnic in 3 cities: buy weather and air-quality data, then recommend one").
-- [ ] F22. `--unsafe` baseline mode with a separate throwaway wallet, for the side-by-side shot only. *(Code done in M7. Not yet run live: the baseline wallet holds 0 USDC and needs funding plus a Gateway deposit.)*
+- [x] F22. `--unsafe` baseline mode with a separate throwaway wallet, for the side-by-side shot only. *(Live 2026-11-18: same inject task, the baseline paid the attacker 0.05 USDC, tx [`0xc12d…0d77`](https://explorer.testnet.arc.io/tx/0xc12dca57023aeef6b37747583896a49b1ff367defd9160e967f4c3a19df50d77). Fund its Gateway balance with `npm run baseline:deposit`.)*
 
 ### Dashboard
 - [ ] F23. Live decision log (SSE) with reason, rule, and explorer link per row.
@@ -519,6 +519,8 @@ How it was built:
 - **Loop:** a manual loop on `client.beta.messages.create` (`@anthropic-ai/sdk` 1.8.0), model `claude-sonnet-5-5`, `output_config.effort` medium, prompt caching, and server-side refusal fallbacks (`fallbacks: "default"` with the `server-side-fallback-2026-07-01` beta). It handles `pause_turn`, `refusal` and `max_tokens`, with a 25-turn limit. The `MessagesApi` seam lets tests script the model.
 - **Env isolation:** the agent never calls `loadEnv`. `assertNoCredentials()` refuses to start if any Circle, entity-secret or private-key variable is visible. `npm run task` creates the mandate (with the `x-admin-token` header), spawns the agent with a clean environment (`PATH`, `HOME`, `TERM` plus the agent's own variables), and closes the mandate when the agent exits.
 - **Scripts:** `npm run firewall`, `npm run vendors`, `npm run task -- "<task>" [--budget 0.50] [--ttl 600] [--allow-transfers] [--unsafe]`, `npm run agent -- --mandate <id>`.
+- **Baseline parity:** the unsafe backend returns the same tool-output shape as the firewalled one. An earlier version also returned the vendor's `payTo`, and the model refused the fee because the attacker address differed from it. For a fair side-by-side, the only difference should be who decides.
+- **The model is not deterministic.** In 5 live injection runs, Sonnet paid or tried to pay in 2 and declined in 3, depending on the fixture and on luck. The firewall's result doesn't depend on that, but the video needs a take where the agent goes for it, so plan to record a few.
 - **Admin token:** set `FIREWALL_ADMIN_TOKEN` in `.env` (or the environment of both `npm run firewall` and `npm run task`). Without it the firewall makes a random one at each start, and the launcher and dashboard can't authenticate.
 
 ### M8. Red-team suite

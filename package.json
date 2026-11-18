@@ -8,6 +8,7 @@
   "scripts": {
     "wallets:setup": "tsx scripts/setup-wallets.ts",
     "wallets:balances": "tsx scripts/balances.ts",
+    "baseline:deposit": "tsx scripts/baseline-deposit.ts",
     "spike:sign": "tsx scripts/spikes/circle-sign-eip3009.ts",
     "spike:pay": "tsx scripts/spikes/gateway-nanopayment.ts",
     "spike:usdc": "tsx scripts/spikes/usdc-domain.ts",
