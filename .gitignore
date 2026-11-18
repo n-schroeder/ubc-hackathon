@@ -5,3 +5,6 @@ node_modules/
 
 # firewall runtime data
 data/
+
+# static replay build output (npm run build:site)
+site/
