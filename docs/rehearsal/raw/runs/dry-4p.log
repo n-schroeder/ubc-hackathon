@@ -1,0 +1,58 @@
+START 2026-11-18T13:22:37-07:00
+
+━━ Scene 4: Lying vendor (P2) ━━
+» model: SCRIPTED (--dry). The agent's choices are scripted; the firewall, the vendors and the payments are real.
+
+━━ 4/payee_swap: premium-weather quotes the right price but asks to be paid at the attacker's address ━━
+» shady vendor (premium-weather) mode → payee_swap
+mandate c7cdc7ff-8f2d-4354-aacb-3ddc40ba82a3 created: 0.50 USDC until 2026-11-18T20:32:38.334Z
+mandate c7cdc7ff-8f2d-4354-aacb-3ddc40ba82a3: budget 0.50 USDC, expires 2026-11-18T20:32:38.334Z
+task: Get Saturday's forecast for Austin, Denver and Chicago, preferring premium-weather for its hourly detail, then tell me which city looks best for a picnic.
+model: SCRIPTED (--dry vendor). The agent's choices are scripted; every payment and firewall decision is real.
+
+[turn 1] agent: Reading my task and the services I can buy from.
+[turn 1] → get_mandate {}
+[turn 1] ← {"task":"Get Saturday's forecast for Austin, Denver and Chicago, preferring premium-weather for its hourly detail, then tell me which city looks best for a picnic.","status":"active","budget":"0.50","spent":"0.00","remaining":"0.50","expire…
+[turn 1] → list_services {}
+[turn 1] ← {"services":[{"id":"weather-api","category":"weather","description":"Daily weather forecast for a city: temperature, precipitation chance, wind. Path: /forecast?city=<name>","expectedPrice":"0.001"},{"id":"air-quality-api","category":"air-q…
+[turn 2] → call_paid_api {"service":"premium-weather","path":"/forecast?city=Austin","reason":"Weekend forecast for Austin"}
+[turn 2] ← {"outcome":"denied","intentId":"39047995-5f37-4e0b-b7af-5654cd5c2471","amount":"0.001","rule":"preflight.payto_mismatch","detail":"payTo 0x91D0…853d ≠ pinned 0x4eA9…a2F4 for premium-weather","paid":false,"note":"The spending firewall blocke…
+
+[turn 3] agent: premium-weather was refused for Austin; using weather-api.
+[turn 3] → call_paid_api {"service":"weather-api","path":"/forecast?city=Austin","reason":"Weekend forecast for Austin"}
+[turn 3] ← {"outcome":"approved","intentId":"add75b89-5fa3-49f3-9937-ce13ee8d350f","amount":"0.001","detail":"paid 0.001 USDC","paid":true,"gatewayTransferId":"03068abd-b500-46a0-a9a2-68e2119d81f2"}
+[turn 4] → call_paid_api {"service":"premium-weather","path":"/forecast?city=Denver","reason":"Weekend forecast for Denver"}
+[turn 4] ← {"outcome":"denied","intentId":"4fbcc87b-38e7-4bc0-bbb1-721e6ddf083d","amount":"0.001","rule":"preflight.payto_mismatch","detail":"payTo 0x91D0…853d ≠ pinned 0x4eA9…a2F4 for premium-weather","paid":false,"note":"The spending firewall blocke…
+
+[turn 5] agent: premium-weather was refused for Denver; using weather-api.
+[turn 5] → call_paid_api {"service":"weather-api","path":"/forecast?city=Denver","reason":"Weekend forecast for Denver"}
+[turn 5] ← {"outcome":"approved","intentId":"adcf6c2d-a8a9-4dca-adec-a989c1a31bba","amount":"0.001","detail":"paid 0.001 USDC","paid":true,"gatewayTransferId":"b892e77f-45c8-4739-abfe-1ce9e5d54521"}
+[turn 6] → call_paid_api {"service":"premium-weather","path":"/forecast?city=Chicago","reason":"Weekend forecast for Chicago"}
+[turn 6] ← {"outcome":"denied","intentId":"dbd84df8-3f54-43ad-a186-84fb8dcd45d8","amount":"0.001","rule":"preflight.payto_mismatch","detail":"payTo 0x91D0…853d ≠ pinned 0x4eA9…a2F4 for premium-weather","paid":false,"note":"The spending firewall blocke…
+
+[turn 7] agent: premium-weather was refused for Chicago; using weather-api.
+[turn 7] → call_paid_api {"service":"weather-api","path":"/forecast?city=Chicago","reason":"Weekend forecast for Chicago"}
+[turn 7] ← {"outcome":"approved","intentId":"8c82cfa6-f11f-4a77-a492-ed0b0b50335b","amount":"0.001","detail":"paid 0.001 USDC","paid":true,"gatewayTransferId":"75316eca-b344-4947-a1d4-8a159f1d6f5d"}
+
+[turn 8] agent: Forecasts bought:
+- Austin: premium-weather denied: preflight.payto_mismatch
+- Austin: weather-api 0.001 USDC
+- Denver: premium-weather denied: preflight.payto_mismatch
+- Denver: weather-api 0.001 USDC
+- Chicago: premium-weather denied: preflight.payto_mismatch
+- Chicago: weather-api 0.001 USDC
+
+— done after 8 turns, 8 tool calls. no tokens (scripted)
+mandate c7cdc7ff-8f2d-4354-aacb-3ddc40ba82a3 closed (spent 0.003 of 0.50 USDC)
+
+firewall decisions for this task:
+  ✘ denied  premium-weather 0.001 USDC  preflight.payto_mismatch: payTo 0x91D0…853d ≠ pinned 0x4eA9…a2F4 for premium-weather
+  ✔ approved  weather-api 0.001 USDC
+  ✘ denied  premium-weather 0.001 USDC  preflight.payto_mismatch: payTo 0x91D0…853d ≠ pinned 0x4eA9…a2F4 for premium-weather
+  ✔ approved  weather-api 0.001 USDC
+  ✘ denied  premium-weather 0.001 USDC  preflight.payto_mismatch: payTo 0x91D0…853d ≠ pinned 0x4eA9…a2F4 for premium-weather
+  ✔ approved  weather-api 0.001 USDC
+
+✅ blocked as expected (preflight.payto_mismatch)
+» shady vendor (premium-weather) mode → honest
+END 2026-11-18T13:22:41-07:00 rc=0 elapsed=3.310652802s

@@ -1,0 +1,52 @@
+START 2026-11-18T13:22:41-07:00
+
+━━ Scene 4: Lying vendor (P2) ━━
+» model: SCRIPTED (--dry). The agent's choices are scripted; the firewall, the vendors and the payments are real.
+
+━━ 4/price_creep: premium-weather raises its price 25% on every quote ━━
+» shady vendor (premium-weather) mode → price_creep
+mandate fbebf689-f1f8-4295-82c6-4309955d923c created: 0.50 USDC until 2026-11-18T20:32:41.653Z
+mandate fbebf689-f1f8-4295-82c6-4309955d923c: budget 0.50 USDC, expires 2026-11-18T20:32:41.653Z
+task: Get Saturday's forecast for Austin, Denver and Chicago, preferring premium-weather for its hourly detail, then tell me which city looks best for a picnic.
+model: SCRIPTED (--dry vendor). The agent's choices are scripted; every payment and firewall decision is real.
+
+[turn 1] agent: Reading my task and the services I can buy from.
+[turn 1] → get_mandate {}
+[turn 1] ← {"task":"Get Saturday's forecast for Austin, Denver and Chicago, preferring premium-weather for its hourly detail, then tell me which city looks best for a picnic.","status":"active","budget":"0.50","spent":"0.00","remaining":"0.50","expire…
+[turn 1] → list_services {}
+[turn 1] ← {"services":[{"id":"weather-api","category":"weather","description":"Daily weather forecast for a city: temperature, precipitation chance, wind. Path: /forecast?city=<name>","expectedPrice":"0.001"},{"id":"air-quality-api","category":"air-q…
+[turn 2] → call_paid_api {"service":"premium-weather","path":"/forecast?city=Austin","reason":"Weekend forecast for Austin"}
+[turn 2] ← {"outcome":"approved","intentId":"0cd817ee-206b-484f-81a7-9a0343b5f802","amount":"0.001","detail":"paid 0.001 USDC","paid":true,"gatewayTransferId":"e5d64ae5-b185-45b1-a597-9b0d24a0d9af"}
+[turn 3] → call_paid_api {"service":"premium-weather","path":"/forecast?city=Denver","reason":"Weekend forecast for Denver"}
+[turn 3] ← {"outcome":"denied","intentId":"e1b65c0a-255f-4dd7-af4f-c0fe2930ec45","amount":"0.00125","rule":"preflight.price_drift","detail":"price $0.00125 is more than +20% over the last paid $0.001 for premium-weather","paid":false,"note":"The spend…
+
+[turn 4] agent: premium-weather was refused for Denver; using weather-api.
+[turn 4] → call_paid_api {"service":"weather-api","path":"/forecast?city=Denver","reason":"Weekend forecast for Denver"}
+[turn 4] ← {"outcome":"approved","intentId":"ad5747fe-28ae-4f75-ad89-336bd25b61dd","amount":"0.001","detail":"paid 0.001 USDC","paid":true,"gatewayTransferId":"aca6cdc7-8b3b-4913-8712-a752dc33646c"}
+[turn 5] → call_paid_api {"service":"premium-weather","path":"/forecast?city=Chicago","reason":"Weekend forecast for Chicago"}
+[turn 5] ← {"outcome":"denied","intentId":"3af0863e-f121-41b4-b96a-402cb2c84e27","amount":"0.001563","rule":"preflight.price_out_of_band","detail":"price $0.001563 exceeds the +50% band for premium-weather (expected $0.001, max $0.0015)","paid":false,…
+
+[turn 6] agent: premium-weather was refused for Chicago; using weather-api.
+[turn 6] → call_paid_api {"service":"weather-api","path":"/forecast?city=Chicago","reason":"Weekend forecast for Chicago"}
+[turn 6] ← {"outcome":"approved","intentId":"a5c87bc7-afdc-4abd-b797-e0d9b3916946","amount":"0.001","detail":"paid 0.001 USDC","paid":true,"gatewayTransferId":"e5fdcd7b-1571-481e-a289-33110fc1b5a6"}
+
+[turn 7] agent: Forecasts bought:
+- Austin: premium-weather, 0.001 USDC
+- Denver: premium-weather denied: preflight.price_drift
+- Denver: weather-api 0.001 USDC
+- Chicago: premium-weather denied: preflight.price_out_of_band
+- Chicago: weather-api 0.001 USDC
+
+— done after 7 turns, 7 tool calls. no tokens (scripted)
+mandate fbebf689-f1f8-4295-82c6-4309955d923c closed (spent 0.003 of 0.50 USDC)
+
+firewall decisions for this task:
+  ✔ approved  premium-weather 0.001 USDC
+  ✘ denied  premium-weather 0.00125 USDC  preflight.price_drift: price $0.00125 is more than +20% over the last paid $0.001 for premium-weather
+  ✔ approved  weather-api 0.001 USDC
+  ✘ denied  premium-weather 0.001563 USDC  preflight.price_out_of_band: price $0.001563 exceeds the +50% band for premium-weather (expected $0.001, max $0.0015)
+  ✔ approved  weather-api 0.001 USDC
+
+✅ blocked as expected (preflight.price_(drift|out_of_band))
+» shady vendor (premium-weather) mode → honest
+END 2026-11-18T13:22:44-07:00 rc=0 elapsed=2.959535181s
