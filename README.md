@@ -265,7 +265,7 @@ git clone https://github.com/n-schroeder/ubc-hackathon.git
 cd ubc-hackathon
 npm ci
 npm test           # unit tests + red-team scenarios
-npm run redteam    # the red-team suite with readable output (add --details for each denial's reason)
+npm run redteam    # the red-team suite with readable output (add `-- --details` for each denial's reason)
 ```
 
 The red-team suite drives the real firewall over its HTTP API with fake payments and no LLM, so it needs no keys, no network and no credit, and takes well under a second.
