@@ -76,7 +76,7 @@ Every item here is a hard requirement. The final milestone (M10) checks each one
 
 **What to Submit (all submissions)**
 - [ ] Project name, short description, team members (solo). *Drafted in `docs/devpost.md`; still to be entered on the Devpost form. The name is still the working name (§9 item 12, flagged at the top of `docs/devpost.md`). → TASK-11.*
-- [ ] Main track, chain award, and any bounties selected on Devpost. *→ TASK-11.*
+- [ ] Main track, chain award, and any bounties selected on Devpost. *→ TASK-11; prizes checked in TASK-18 (see `docs/devpost.md`).*
 - [x] Written answers: What did you build? What problem does it solve? How does it work? What makes it unique? What would you build next? *(`docs/devpost.md`, F32. Paste into Devpost in TASK-11.)*
 - [ ] Technologies and sponsor tools used. *Drafted in `docs/devpost.md` ("Built with" tags plus a table of what each one is used for); still to be entered on the Devpost form. → TASK-11.*
 - [ ] **Public** GitHub repo with source code and setup instructions. *Source and setup instructions are done (README "Setup", `docs/TESTING.md`). The repo was still **PRIVATE** on 2026-11-18 (`gh repo view`). → TASK-11.*
