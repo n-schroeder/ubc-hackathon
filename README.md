@@ -346,6 +346,7 @@ Useful scripts:
 |---|---|
 | `npm run firewall` / `npm run vendors` | Start one piece on its own (`npm run demo` starts both) |
 | `npm run check:vendors` | Print the 402 quote each shady mode returns, then pay the honest vendor once per endpoint through the firewall ($0.003; `-- --quotes-only` to skip paying) |
+| `npm run build:site` | Build `site/`, a static read-only replay of a recorded run's dashboard (scene by scene, no wallet or keys behind it; see [`docs/hosting.md`](docs/hosting.md)) |
 | `npm run docs:limits` | Regenerate this README's safety-limits tables from `config/` (`-- --check` to verify) |
 | `npm run typecheck` | TypeScript check of all packages and scripts |
 
