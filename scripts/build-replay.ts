@@ -1,6 +1,6 @@
 // Builds the static, read-only replay of the firewall dashboard into site/ (Cloudflare Pages serves it as is).
 //
-//   npm run build:site [-- --data docs/rehearsal] [--out site] [--env .env]
+//   npm run build:site [-- --data docs/rehearsal/raw] [--out site] [--env .env]
 //
 // Input: a recorded run's ledger.json (GET /ledger) and mandates.json (GET /mandates) in --data, plus the
 // hand-written captions in packages/firewall/replay/notes.json. Output: the live dashboard's own files from
@@ -19,7 +19,7 @@ import { deriveReplay, findLeaks, secretNeedles, type Notes } from "./lib/replay
 
 const { values } = parseArgs({
   options: {
-    data: { type: "string", default: "docs/rehearsal" },
+    data: { type: "string", default: "docs/rehearsal/raw" },
     out: { type: "string", default: "site" },
     env: { type: "string", default: ".env" },
   },
