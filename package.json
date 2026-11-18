@@ -23,6 +23,7 @@
     "demo": "tsx scripts/demo.ts",
     "demo:scene": "tsx scripts/demo-scene.ts",
     "redteam": "tsx packages/redteam/src/main.ts",
+    "docs:limits": "tsx scripts/readme-limits.ts",
     "typecheck": "tsc -p .",
     "test": "vitest run"
   },
