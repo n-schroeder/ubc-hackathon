@@ -2,3 +2,6 @@ claude-docs/*
 .env
 
 node_modules/
+
+# firewall runtime data
+data/
