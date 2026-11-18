@@ -169,7 +169,7 @@ npm run demo:scene -- 5    # runaway loop: a velocity.* rule trips the breaker (
 npm run demo:scene -- 6    # task ended: a late payment finds mandate.none_active
 ```
 
-Each scene prints the firewall's decisions and whether they matched what the scene expected. With the real model, a step can come out differently, for example Claude declining the scam on its own. The scene says so; rerun it, or use `--dry` for the deterministic version. Every approved payment appears on the dashboard with its Gateway transfer id or explorer link, and you can check it as in level 2 with your own firewall address.
+Each scene prints the firewall's decisions and whether they matched what the scene expected. With the real model, a step can come out differently, for example Claude declining the scam on its own. The scene says so; rerun it, or use `--dry` for the deterministic version. Every approved payment appears on the dashboard with an explorer link (a nanopayment shows its Gateway transfer id until Circle batches it onchain, typically 2–16 minutes, and then the link appears in place), and you can check it as in level 2 with your own firewall address.
 
 **7. Your own task** (optional):
 
