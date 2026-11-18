@@ -328,7 +328,7 @@ Feasibility ratings come from the research doc: 🟢 comfortable, 🟡 doable wi
 
 Everything here ships in the final submission. The MVP is "done" when every box is checked and the demo script in §8 runs end to end on Arc testnet.
 
-*Reconciled 2026-11-18 (TASK-10) against the code and the test run at that commit: `npm test` 115/115, `npm run typecheck` clean, `npm run redteam` 21/21. The F23–F27 API was also exercised live through `npm run dashboard:dev` (SSE, approvals, mandate create/revoke, breaker reset, vendor mode). Test names below are quoted from the test files. Open boxes say what's missing and which card owns it.*
+*Reconciled 2026-11-18 (TASK-10) against the code and the test run at that commit: `npm test` 115/115 (124/124 after TASK-12), `npm run typecheck` clean, `npm run redteam` 21/21. The F23–F27 API was also exercised live through `npm run dashboard:dev` (SSE, approvals, mandate create/revoke, breaker reset, vendor mode). Test names below are quoted from the test files. Open boxes say what's missing and which card owns it.*
 
 ### Firewall core (P1)
 - [x] F1. Firewall HTTP service; the only process with wallet credentials. *(`firewall/src/server.ts`, `main.ts`. Only `main.ts` constructs the signer. The agent refuses to start with credentials: agent.test.ts "refuses to start with firewall credentials in its environment"; redteam covers the same.)*
@@ -402,7 +402,7 @@ Each item says how the MVP design already leaves room for it.
 *The highest-value stretch: it adds a deployed contract address for the Arc award.*
 
 - **What:** a ~50-line Solidity contract that holds the main funds and drips USDC to the agent's hot wallet per mandate. The hot wallet only ever holds the current mandate's budget, so the chain itself bounds the worst case. Revocation pulls the balance back, final in one block (A2).
-- **Room in the MVP:** mandates are already first-class objects with an id, budget and lifecycle (F16–F18), and are stored behind a `MandateStore` interface. The vault adds an `OnchainMandateStore` that calls `open(mandateId, budget)` / `close(mandateId)` on the contract alongside the offchain record. The signer's source wallet is already a config value, so it can point at the hot wallet.
+- **Room in the MVP:** mandates are already first-class objects with an id, budget and lifecycle (F16–F18), and are stored as records in the `Store` class (`packages/firewall/src/store.ts`) next to the ledger. There is no separate mandate-store interface yet. The vault would hook mandate create/revoke so it calls `open(mandateId, budget)` / `close(mandateId)` on the contract alongside the offchain record. The signer's source wallet is already a config value, so it can point at the hot wallet.
 - **Needs:** Foundry installed, Foundry tests, decimals care (6 for the ERC-20 interface, 18 for native gas balance), and ideally a mentor glance at office hours.
 - **Effort:** about half a day.
 
@@ -437,7 +437,7 @@ Each item says how the MVP design already leaves room for it.
 ### S5.1 Onchain vendor trust layer (ERC-8004) — 🔴
 
 - **What:** vendor identity and reputation from an ERC-8004 registry on Arc, with reputation from completed jobs (optionally ERC-8183 escrow).
-- **Room in the MVP:** the agent already only sees vendors through `list_services()`, and the registry is loaded behind a `VendorSource` interface (`JsonVendorSource` in the MVP). An `Erc8004VendorSource` would slot in beside it.
+- **Room in the MVP:** the agent already only sees vendors through `list_services()`, and the registry comes from one function, `loadRegistry()` (`packages/shared/src/config.ts`), which reads `config/registry.json`. There is no vendor-source interface yet. An ERC-8004 source would replace that loader (or sit behind it), and every caller would pick it up.
 - **Realistically:** this is the "What would you build next?" answer on Devpost, not something to build this week. It first needs confirmation that ERC-8004 registries are deployed on Arc testnet.
 
 ---
@@ -499,7 +499,7 @@ Per-tx cap, daily budget, recipient allowlist, `send_payment` intents, escalatio
 
 ### M5. Mandates (P4)
 
-`MandateStore` (offchain); create/complete/expire/revoke; mandate check first in the pipeline (after the breaker); mandate spend tracking.
+Offchain mandate records (in the firewall `Store`); create/complete/expire/revoke; mandate check first in the pipeline (after the breaker); mandate spend tracking.
 
 **Exit:** "payment after task end" scenario denied with `mandate.none_active`.
 
