@@ -265,7 +265,7 @@ git clone https://github.com/n-schroeder/ubc-hackathon.git
 cd ubc-hackathon
 npm ci
 npm test           # unit tests + red-team scenarios
-npm run redteam    # the red-team suite with readable output (add --details for each denial's reason)
+npm run redteam    # the red-team suite with readable output (add `-- --details` for each denial's reason)
 ```
 
 The red-team suite drives the real firewall over its HTTP API with fake payments and no LLM, so it needs no keys, no network and no credit, and takes well under a second.
@@ -346,6 +346,7 @@ Useful scripts:
 |---|---|
 | `npm run firewall` / `npm run vendors` | Start one piece on its own (`npm run demo` starts both) |
 | `npm run check:vendors` | Print the 402 quote each shady mode returns, then pay the honest vendor once per endpoint through the firewall ($0.003; `-- --quotes-only` to skip paying) |
+| `npm run build:site` | Build `site/`, a static read-only replay of a recorded run's dashboard (scene by scene, no wallet or keys behind it; see [`docs/hosting.md`](docs/hosting.md)) |
 | `npm run docs:limits` | Regenerate this README's safety-limits tables from `config/` (`-- --check` to verify) |
 | `npm run typecheck` | TypeScript check of all packages and scripts |
 

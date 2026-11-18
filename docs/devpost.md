@@ -78,6 +78,7 @@ A Stream would fit the security story: an independent onchain watcher on Arc tes
 
 - **Repo:** https://github.com/n-schroeder/ubc-hackathon (**make it public before submitting**; it was private on 2026-11-18)
 - **Demo video:** *(add the YouTube or Google Drive link after recording; viewable by anyone with the link)*
+- **Try it out (replay):** https://demo.nschroeder.dev *(not published yet: build and upload per [docs/hosting.md](hosting.md), then keep this line; delete it if the site isn't up)*. It's a read-only replay of the recorded run, so judges can click through every decision without running anything.
 
 ## Built with (technologies and sponsor tools)
 

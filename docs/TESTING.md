@@ -28,13 +28,13 @@ No `.env`, accounts, API keys or network access beyond `npm ci` are needed. Noth
 
 **What you should see:**
 
-- `npm test` → `Test Files 10 passed (10)`, `Tests 124 passed (124)`, in about a second. This covers the money maths, config loading, every firewall check ([`checks.test.ts`](../packages/firewall/test/checks.test.ts)), the core pipeline (idempotency, fail-closed, approvals re-running checks, serialized decisions), the agent's tool loop and its refusal to start with wallet credentials, the scripted `--dry` model, the x402 vendors, the red-team suite, and a check that the README's safety-limits tables still match `config/`.
-- `npm run redteam` → one line per attack, ending with `21/21 scenarios pass · 19/19 attacks stopped with the expected rule`. Each attack runs against a fresh firewall **over its real HTTP API**, using the real `config/policy.json` and `config/registry.json`. Only the payment rail (fake signer, scripted 402 quotes) and the LLM are scripted. Add `-- --details` to print each denial's reason.
+- `npm test` → `Test Files 11 passed (11)`, `Tests 135 passed (135)`, in about a second. This covers the money maths, config loading, every firewall check ([`checks.test.ts`](../packages/firewall/test/checks.test.ts)), the core pipeline (idempotency, fail-closed, approvals re-running checks, serialized decisions), the agent's tool loop and its refusal to start with wallet credentials, the scripted `--dry` model, the x402 vendors, the red-team suite, the static replay build and its secret scan, and a check that the README's safety-limits tables still match `config/`.
+- `npm run redteam` → one line per attack, ending with `21/21 scenarios pass · 19/19 attacks stopped with the expected rule · <time> ms`. Each attack runs against a fresh firewall **over its real HTTP API**, using the real `config/policy.json` and `config/registry.json`. Only the payment rail (fake signer, scripted 402 quotes) and the LLM are scripted. Add `-- --details` to print each denial's reason.
 
 Optional:
 
 ```bash
-npm run typecheck          # tsc over all packages and scripts; prints nothing on success
+npm run typecheck          # tsc over all packages and scripts; prints nothing after npm's own header on success
 ```
 
 ### The dashboard, with no keys
