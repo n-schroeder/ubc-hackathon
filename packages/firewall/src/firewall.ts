@@ -4,7 +4,7 @@ import { EventEmitter } from "node:events";
 import { randomUUID } from "node:crypto";
 import { getAddress, isAddress } from "viem";
 import {
-  formatUsdc, parseUsdc, txUrl,
+  SPENT_OUTCOMES, formatUsdc, parseUsdc, txUrl,
   type Address, type BreakerState, type Check, type CheckContext, type CheckResult, type IntentRequest,
   type IntentResponse, type LedgerRow, type Mandate, type PaymentIntent, type Policy, type RegistryEntry,
 } from "@asf/shared";
@@ -112,7 +112,7 @@ export class Firewall extends EventEmitter<FirewallEvents> {
       if (!approve) {
         const row: LedgerRow = { ...p.row, outcome: "human_denied", rule: "escalation.human_denied", detail: `denied by ${by}`, decidedBy: by, at: this.now().toISOString() };
         this.store.update(row);
-        this.emit("decision", row);
+        this.emitDecision(row);
         return toResponse(row);
       }
       // Re-run every check against fresh state (the quote, the breaker, budgets may have changed).
@@ -122,7 +122,7 @@ export class Firewall extends EventEmitter<FirewallEvents> {
         outcome: fresh.outcome === "approved" ? "human_approved" : fresh.outcome,
       };
       this.store.update(row);
-      this.emit("decision", row);
+      this.emitDecision(row);
       return { ...toResponse(row), data };
     });
   }
@@ -134,7 +134,8 @@ export class Firewall extends EventEmitter<FirewallEvents> {
   }
 
   resetBreaker(): BreakerState {
-    const b: BreakerState = { state: "closed" };
+    // resetAt bounds the velocity windows, so spend from before the reset can't re-trip it at once.
+    const b: BreakerState = { state: "closed", resetAt: this.now().toISOString() };
     this.store.setBreaker(b);
     this.emit("breaker", b);
     return b;
@@ -211,7 +212,7 @@ export class Firewall extends EventEmitter<FirewallEvents> {
     const all = joinResults(s1, runChecks(this.pipeline.afterQuote, intent, ctx));
     const trip = all.results.find((r) => r.tripBreaker && r.outcome === "deny");
     if (trip) {
-      const b: BreakerState = { state: "open", trippedAt: now.toISOString(), rule: trip.rule, detail: trip.detail };
+      const b: BreakerState = { state: "open", trippedAt: now.toISOString(), rule: trip.rule, detail: trip.detail, resetAt: ctx.breaker.resetAt };
       this.store.setBreaker(b);
       this.emit("breaker", b);
     }
@@ -248,8 +249,17 @@ export class Firewall extends EventEmitter<FirewallEvents> {
 
   private record(intent: PaymentIntent, row: Omit<LedgerRow, "seq">, patch: Partial<LedgerRow> = {}): LedgerRow {
     const saved = this.store.append(intent, { ...row, ...patch });
-    this.emit("decision", saved);
+    this.emitDecision(saved);
     return saved;
+  }
+
+  /** Every decision goes out on the event stream; spending ones also push the mandate's new `spent`. */
+  private emitDecision(row: LedgerRow) {
+    this.emit("decision", row);
+    if (SPENT_OUTCOMES.includes(row.outcome)) {
+      const m = this.store.getMandate(row.mandateId, this.now());
+      if (m) this.emit("mandate", m);
+    }
   }
 }
 

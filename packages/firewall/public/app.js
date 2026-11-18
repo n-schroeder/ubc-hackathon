@@ -187,35 +187,11 @@ function upsert(row, live) {
     const oldest = [...state.rows.values()].sort((a, b) => a.seq - b.seq).slice(0, state.rows.size - MAX_ROWS);
     for (const r of oldest) state.rows.delete(r.intentId);
   }
-  if (live && SPENT.has(row.outcome) && !(prev && SPENT.has(prev.outcome))) {
-    const m = state.mandates.get(row.mandateId);
-    if (m) {
-      m.spent = usdStr(micro(m.spent) + micro(row.amount));
-      m.remaining = usdStr(micro(m.budget) - micro(m.spent));
-    }
-    refetchMandatesSoon();
-  }
+  // (Mandate spend updates arrive as "mandate" events right after each spending decision.)
   if (live) {
     renderRow(row, !prev || prev.outcome !== row.outcome);
     scheduleRender();
   }
-}
-
-const usdStr = (u) => (u / 1e6).toFixed(6);
-
-let mandateTimer;
-function refetchMandatesSoon() {
-  // The firewall only emits "mandate" on create/status change; spend updates come from refetching.
-  if (mandateTimer) return;
-  mandateTimer = setTimeout(async () => {
-    mandateTimer = null;
-    try {
-      const list = await api("/mandates");
-      state.mandates.clear();
-      for (const m of list) state.mandates.set(m.id, m);
-      renderMandates();
-    } catch { /* keep the optimistic numbers */ }
-  }, 1200);
 }
 
 const logEl = $("log");
@@ -497,7 +473,8 @@ function spendSeries(now) {
   const start = end - WINDOW;
   const ev = [];
   for (const r of state.rows.values()) {
-    if (!SPENT.has(r.outcome)) continue;
+    // Same scope as the velocity check: x402 nanopayments (transfers are capped and human-approved).
+    if (!SPENT.has(r.outcome) || r.kind !== "x402_call") continue;
     const t = Date.parse(r.at);
     if (t > start - 60_000 && t <= end) ev.push([t, micro(r.amount)]);
   }

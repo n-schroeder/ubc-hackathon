@@ -146,6 +146,7 @@ export type BreakerState = {
   trippedAt?: string;
   rule?: string;
   detail?: string;
+  resetAt?: string;            // last human reset; velocity windows start no earlier than this
 };
 
 // ---------------------------------------------------------------- the check pipeline

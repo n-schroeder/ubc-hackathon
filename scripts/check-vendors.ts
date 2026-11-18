@@ -1,9 +1,10 @@
 // M2 exit check: start both vendors in-process (real Circle Gateway testnet facilitator), print the 402
 // quote each shady mode returns, then pay the honest vendor once per endpoint through a real firewall
-// (no checks yet). Spends $0.003 of testnet USDC from the firewall's Gateway balance.
+// (full check pipeline). Spends $0.003 of testnet USDC from the firewall's Gateway balance.
 //   npm run check:vendors            quotes + real payments
 //   npm run check:vendors -- --quotes-only
 import { loadDemoAddresses, loadPolicy, loadRegistry, usd, type RegistryEntry } from "@asf/shared";
+import { defaultPipeline } from "../packages/firewall/src/checks/index.ts";
 import { Firewall, LivePayments } from "../packages/firewall/src/firewall.ts";
 import { CircleWalletSigner } from "../packages/firewall/src/signer.ts";
 import { Store } from "../packages/firewall/src/store.ts";
@@ -40,10 +41,10 @@ try {
   }
 
   if (!quotesOnly) {
-    console.log("\n== paying the honest vendor through the firewall (allow-all pipeline)");
+    console.log("\n== paying the honest vendor through the firewall (full check pipeline)");
     const fw = new Firewall({
       store: new Store(":memory:"), policy: loadPolicy(), registry,
-      pipeline: { beforeQuote: [], afterQuote: [] },
+      pipeline: defaultPipeline(),
       payments: new LivePayments(new CircleWalletSigner()),
     });
     const m = fw.createMandate({ task: "M2 vendor check", allowedServices: ["weather-api", "air-quality-api"] });
