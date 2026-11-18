@@ -127,6 +127,19 @@ export class Firewall extends EventEmitter<FirewallEvents> {
     });
   }
 
+  // ------------------------------------------------------------------ settlement (F6/F23)
+
+  /** Gateway batched a paid nanopayment onchain: attach its tx hash and explorer link to the row.
+   *  Besides approvals this is the only in-place ledger update, and it touches only those two fields. */
+  recordSettlement(intentId: string, txHash: string): LedgerRow | undefined {
+    const p = this.store.byIntentId(intentId);
+    if (!p || p.row.txHash || !p.row.gatewayTransferId || !SPENT_OUTCOMES.includes(p.row.outcome)) return undefined;
+    const row: LedgerRow = { ...p.row, txHash, explorerUrl: txUrl(txHash) };
+    this.store.update(row);
+    this.emit("decision", row);
+    return row;
+  }
+
   // ------------------------------------------------------------------ breaker (P3)
 
   breaker(): BreakerState {

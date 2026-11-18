@@ -52,7 +52,8 @@ export class Store {
     return full;
   }
 
-  /** Only the approval flow updates rows: pending_human → human_approved | human_denied | failed. */
+  /** Rows change in place in two cases only: the approval flow (pending_human → human_approved |
+   *  human_denied | failed), and settlement, which adds a nanopayment's batch txHash + explorerUrl. */
   update(row: LedgerRow): void {
     this.db.prepare(`UPDATE ledger SET outcome = ?, at = ?, row = ? WHERE seq = ?`).run(row.outcome, row.at, enc(row), row.seq);
   }

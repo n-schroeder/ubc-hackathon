@@ -6,6 +6,7 @@ import { REPO_ROOT, loadPolicy, loadRegistry, optionalEnv } from "@asf/shared";
 import { defaultPipeline } from "./checks/index.ts";
 import { Firewall, LivePayments } from "./firewall.ts";
 import { createApp } from "./server.ts";
+import { SettlementWatcher, gatewayTransferLookup } from "./settlement.ts";
 import { CircleWalletSigner } from "./signer.ts";
 import { Store } from "./store.ts";
 
@@ -22,6 +23,8 @@ const fw = new Firewall({
   pipeline: defaultPipeline(),
   payments: new LivePayments(signer),
 });
+// Nanopayments settle in Gateway batches; fill in each row's batch tx hash + explorer link when it lands.
+new SettlementWatcher(fw, gatewayTransferLookup()).start();
 const app = createApp(fw, { adminToken, staticDir: resolve(import.meta.dirname, "../public") });
 app.listen(port, "127.0.0.1", () => {
   console.log(`firewall listening on http://127.0.0.1:${port} (wallet ${signer.address})`);
