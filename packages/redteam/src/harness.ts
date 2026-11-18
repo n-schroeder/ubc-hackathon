@@ -6,9 +6,15 @@ import type { AddressInfo } from "node:net";
 import type { IntentRequest, IntentResponse, Policy } from "@asf/shared";
 import { createApp } from "@asf/firewall/server";
 import { gatewayOption, makeRig, type TestRig } from "@asf/firewall/testing";
+import { Watchdog, signQuickNode } from "@asf/firewall/watchdog";
+import { createWatchdogApp } from "@asf/firewall/watchdog-server";
 
 /** The human's token. Attacks never send it: the agent process is never given it. */
 const ADMIN_TOKEN = "redteam-admin-token";
+/** The QuickNode stream's security token: only QuickNode (and this harness, playing QuickNode) has it. */
+export const STREAM_TOKEN = "redteam-quicknode-stream-token-0123456789";
+/** The firewall wallet the watchdog watches. */
+export const FIREWALL_WALLET = "0x115ac8ffb8241e1750ca19c26881f2a498c944b2";
 
 export type MandateInput = { task: string; budget?: string; ttlSeconds?: number; allowedServices?: string[]; allowTransfers?: boolean };
 export type MandateView = { id: string; status: string; budget: string; spent: string; remaining: string };
@@ -25,6 +31,9 @@ export type Harness = TestRig & {
   mandate(input: MandateInput): Promise<MandateView>;
   /** Make premium-weather (the shady vendor) quote something other than its honest price. */
   shady(quote: Partial<Quote> | (() => Quote)): void;
+  watchdog: Watchdog;
+  /** POST a delivery to the watchdog webhook, signed with `token` (QuickNode's by default). */
+  webhook(payload: unknown, token?: string): Promise<{ status: number; body: any }>;
   /** USDC (base units) that actually left the wallet: paid x402 calls plus transfers. */
   moved(): bigint;
   close(): Promise<void>;
@@ -35,6 +44,10 @@ export async function openHarness(opts: { policy?: Policy } = {}): Promise<Harne
   const server: Server = createApp(rig.fw, { adminToken: ADMIN_TOKEN }).listen(0, "127.0.0.1");
   await new Promise((ok) => server.once("listening", ok));
   const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  const watchdog = new Watchdog(rig.fw, FIREWALL_WALLET);
+  const hook: Server = createWatchdogApp(watchdog, { securityToken: STREAM_TOKEN, log: () => {} }).listen(0, "127.0.0.1");
+  await new Promise((ok) => hook.once("listening", ok));
+  const hookUrl = `http://127.0.0.1:${(hook.address() as AddressInfo).port}/quicknode`;
   const premium = rig.registry.find((s) => s.id === "premium-weather")!;
 
   const http = async (method: string, path: string, body: unknown, token?: string) => {
@@ -60,6 +73,19 @@ export async function openHarness(opts: { policy?: Policy } = {}): Promise<Harne
       ? () => gatewayOption(q())
       : gatewayOption({ amount: premium.expectedPrice, payTo: premium.payTo, ...q })),
     moved: () => rig.pay.paid.reduce((s, p) => s + BigInt(p.option.amount), 0n) + rig.pay.transfers.reduce((s, t) => s + t.amount, 0n),
-    close: () => new Promise((ok) => server.close(() => ok())),
+    watchdog,
+    webhook: async (payload, token = STREAM_TOKEN) => {
+      const body = JSON.stringify(payload);
+      const ts = String(Math.floor(Date.now() / 1000));
+      const r = await fetch(hookUrl, {
+        method: "POST", body,
+        headers: { "content-type": "application/json", "x-qn-nonce": "redteam", "x-qn-timestamp": ts, "x-qn-signature": signQuickNode(token, "redteam", ts, body) },
+      });
+      return { status: r.status, body: await r.json().catch(() => null) };
+    },
+    close: async () => {
+      watchdog.stop();
+      await Promise.all([server, hook].map((s) => new Promise<void>((ok) => s.close(() => ok()))));
+    },
   };
 }

@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import {
   SPENT_OUTCOMES, type BreakerState, type DecisionOutcome, type LedgerRow, type Mandate, type PaymentIntent,
 } from "@asf/shared";
+import type { WatchdogEvent } from "./watchdog.ts";
 
 // bigint-safe JSON
 const BIG = "__bigint:";
@@ -34,6 +35,7 @@ export class Store {
       CREATE INDEX IF NOT EXISTS ledger_at ON ledger(at);
       CREATE TABLE IF NOT EXISTS mandates (id TEXT PRIMARY KEY, created_at TEXT NOT NULL, json TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS outflows (key TEXT PRIMARY KEY, seen_at TEXT NOT NULL, intent_id TEXT, json TEXT NOT NULL);
     `);
   }
 
@@ -90,6 +92,36 @@ export class Store {
       .prepare(`SELECT row FROM ledger WHERE mandate_id = ? AND outcome IN (${SPENT_OUTCOMES.map(() => "?").join(",")})`)
       .all(mandateId, ...SPENT_OUTCOMES) as any[];
     return rows.reduce((sum, r) => sum + (dec<LedgerRow>(r.row).amount ?? 0n), 0n);
+  }
+
+  /** Transfers the firewall signed or tried to: everything that could have moved USDC out of the wallet. */
+  transfers(): LedgerRow[] {
+    return (this.db.prepare(`SELECT row FROM ledger WHERE outcome IN (${[...SPENT_OUTCOMES, "failed"].map(() => "?").join(",")}) ORDER BY seq`)
+      .all(...SPENT_OUTCOMES, "failed") as any[])
+      .map((r) => dec<LedgerRow>(r.row))
+      .filter((r) => r.kind === "transfer");
+  }
+
+  // ------------------------------------------------------------------ onchain watchdog
+
+  /** Records one observed outflow and its verdict. Keyed by tx:recipient:amount, so re-deliveries are no-ops. */
+  recordOutflow(ev: WatchdogEvent): void {
+    const intentId = "intentId" in ev.verdict ? ev.verdict.intentId : null;
+    this.db.prepare(`INSERT OR IGNORE INTO outflows (key, seen_at, intent_id, json) VALUES (?, ?, ?, ?)`).run(ev.key, ev.seenAt, intentId, enc(ev));
+  }
+
+  getOutflow(key: string): WatchdogEvent | undefined {
+    const r = this.db.prepare(`SELECT json FROM outflows WHERE key = ?`).get(key) as any;
+    return r ? dec(r.json) : undefined;
+  }
+
+  outflows(limit = 100): WatchdogEvent[] {
+    return (this.db.prepare(`SELECT json FROM outflows ORDER BY seen_at DESC, rowid DESC LIMIT ?`).all(limit) as any[]).map((r) => dec<WatchdogEvent>(r.json));
+  }
+
+  /** Intents an outflow has already been matched to (one outflow per intent). */
+  matchedIntentIds(): string[] {
+    return (this.db.prepare(`SELECT intent_id FROM outflows WHERE intent_id IS NOT NULL`).all() as any[]).map((r) => r.intent_id);
   }
 
   // ------------------------------------------------------------------ mandates (P4)
