@@ -144,7 +144,7 @@ type Row = { mandateId: string; kind: string; service?: string; recipient?: stri
 
 async function decisions(mandateId: string): Promise<Row[]> {
   const rows = await admin<Row[]>("/ledger?limit=1000");
-  return rows.filter((r) => r.mandateId === mandateId);
+  return rows.filter((r) => r.mandateId === mandateId).reverse(); // the ledger is newest-first; show them in order
 }
 
 function summarize(rows: Row[], step: Step, dry: boolean): boolean {

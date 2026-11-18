@@ -60,7 +60,7 @@ function* picnic(): Generator<DryTurn, string, any[]> {
   return [
     `Bought ${bought} of ${r.length} data sets.`,
     ...scored.map((s) => `- ${s.line}`),
-    best.score === Infinity ? "Not enough data to recommend a city." : `Recommendation: ${best.city}, for the lowest rain chance and cleanest air on Saturday.`,
+    best.score === Infinity ? "Not enough data to recommend a city." : `Recommendation: ${best.city}, for the best mix of rain chance and air quality on Saturday.`,
   ].join("\n");
 }
 
