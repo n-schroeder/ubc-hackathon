@@ -3,7 +3,7 @@
 import { ARC_NETWORK, GATEWAY_WALLET_ADDRESS, USDC_ADDRESS, loadPolicy, loadRegistry, type Address, type Policy, type RegistryEntry } from "@asf/shared";
 import { Firewall, type Payments, type Pipeline } from "./firewall.ts";
 import { Store } from "./store.ts";
-import { toQuote, type PaymentOption, type PaymentRequired, type QuoteResult } from "./x402.ts";
+import { toQuote, type PaidResult, type PaymentOption, type PaymentRequired, type QuoteResult } from "./x402.ts";
 import { defaultPipeline } from "./checks/index.ts";
 
 /** A Gateway-batched 402 option, as the honest vendor would send it. Override fields to simulate attacks. */
@@ -38,7 +38,7 @@ export class FakePayments implements Payments {
     if (!hit) throw new Error(`no fake vendor for ${url}`);
     return hit[1]();
   }
-  async payQuote(url: string, _r: PaymentRequired, option: PaymentOption) {
+  async payQuote(url: string, _r: PaymentRequired, option: PaymentOption): Promise<PaidResult> {
     this.paid.push({ url, option });
     return { status: this.vendorStatus, data: { ok: true, url }, gatewayTransferId: `fake-${this.paid.length}`, settled: true };
   }
