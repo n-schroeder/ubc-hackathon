@@ -1,9 +1,13 @@
 // Prints the USDC balance of the project's wallets on Arc testnet.
-import { realpathSync } from "node:fs";
+import { existsSync, realpathSync } from "node:fs";
 import { createPublicClient, formatUnits, http, parseAbi } from "viem";
 import { arcTestnet } from "viem/chains";
 import { config } from "dotenv";
 
+if (!existsSync(".env")) {
+  console.error("No .env in this directory. Run `cp .env.example .env` in the repo root and fill in TEST_API_KEY and ENTITY_SECRET first (see docs/TESTING.md).");
+  process.exit(1);
+}
 config({ path: realpathSync(".env"), quiet: true });
 const USDC = "0x3600000000000000000000000000000000000000" as const;
 const pc = createPublicClient({ chain: arcTestnet, transport: http() });
