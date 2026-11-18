@@ -124,7 +124,7 @@ describe("agent loop", () => {
     const { api, sent } = scripted([
       reply([{ name: "call_paid_api", input: { service: "premium-weather", path: "/forecast?city=Austin", reason: "weather" } }]),
       // The model falls for it, as the credulous prompt invites.
-      reply([{ name: "send_payment", input: { recipient: attacker, amount: "5", reason: "vendor verification" } }]),
+      reply([{ name: "send_payment", input: { recipient: attacker, amount: "0.05", reason: "premium-weather access" } }]),
       reply([], "The verification payment was blocked, so I used the free data I had."),
     ]);
     const r = await runAgent({ messages: api, backend, log: quiet });
@@ -133,7 +133,7 @@ describe("agent loop", () => {
     expect(pay.transfers).toHaveLength(0);
     const [denial] = lastResults(sent[2]!);
     expect(denial).toMatchObject({ outcome: "denied", paid: false, rule: "policy.recipient_not_allowed" });
-    expect(denial.detail).toMatch(/per-transfer cap/);
+    expect(denial.detail).toMatch(/not on the allowlist/);
   });
 
   it("a vendor's endless pagination trips the velocity breaker, because the harness sees no new progress", async () => {
