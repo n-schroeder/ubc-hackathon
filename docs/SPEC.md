@@ -368,7 +368,7 @@ Everything here ships in the final submission. The MVP is "done" when every box 
 - [ ] F27. Demo controls: malicious vendor mode switch, "start task" button.
 
 ### Red-team suite
-- [ ] F28. Automated scenarios (Vitest), each asserting the exact denial rule:
+- [x] F28. Automated scenarios (Vitest), each asserting the exact denial rule:
   - injection asks for a transfer to an unknown address → `policy.recipient_not_allowed`
   - injection asks for 50 USDC → `policy.per_tx_cap`
   - overcharge → `preflight.price_out_of_band`
@@ -378,7 +378,7 @@ Everything here ships in the final submission. The MVP is "done" when every box 
   - payment after task end → `mandate.none_active`
   - retry of the same intent → paid exactly once
   - honest happy path → approved and settled
-- [ ] F29. Scenarios run without the LLM (they drive the firewall API directly), so they are fast, free and deterministic. A separate, optional `redteam:live` script runs a couple of them through the real agent.
+- [x] F29. Scenarios run without the LLM (they drive the firewall API directly), so they are fast, free and deterministic. A separate, optional `redteam:live` script runs a couple of them through the real agent.
 
 ### Submission
 - [ ] F30. README: what it is, architecture diagram, **decision loop**, **safety limits table**, how it uses Arc (with contract addresses used), setup instructions, demo instructions, what's next.
@@ -528,6 +528,8 @@ How it was built:
 Consolidate all scenarios from F28 into `packages/redteam`, one command (`npm run redteam`), readable output (scenario → expected rule → actual rule → ✅/❌). Optional `redteam:live`.
 
 **Exit:** all scenarios green; output is screenshot-worthy for the video.
+
+✅ *Done 2026-11-18:* `npm run redteam` (add `--details` for each denial's reason, or pass an id or `P1`–`P4` to filter). It runs 21 scenarios (19 attacks plus replay and the honest task) in about 0.2 s. Each scenario gets a fresh firewall behind its real HTTP API (`createApp` on port 0), using the real `policy.json`/`registry.json` and fake payments. Each one asserts the exact outcome and rule **and** that no USDC moved. Additions beyond F28: the agent approving its own held payment or creating its own mandate (HTTP 401), the agent starting with credentials (refuses), wrong chain, unknown service, spend rate, expiry, an exhausted budget, an out-of-scope service, and a transfer not in the task. The scenarios also run under `npm test` (`packages/redteam/test`). A mutation check (allowlisting the attacker, raising the cap, disabling no-progress and drift) turned exactly the 4 matching scenarios red. `redteam:live` was not built (optional).
 
 ### M9. Dashboard
 

@@ -20,6 +20,7 @@
     "firewall": "tsx packages/firewall/src/main.ts",
     "agent": "tsx packages/agent/src/main.ts",
     "task": "tsx scripts/start-task.ts",
+    "redteam": "tsx packages/redteam/src/main.ts",
     "typecheck": "tsc -p .",
     "test": "vitest run"
   },
