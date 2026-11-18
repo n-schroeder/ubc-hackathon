@@ -1,7 +1,7 @@
 // The only code that can move money. Loaded by the firewall process only (never the agent).
 import { initiateDeveloperControlledWalletsClient } from "@circle-fin/developer-controlled-wallets";
 import { getAddress } from "viem";
-import { ARC_CHAIN_ID, CIRCLE_BLOCKCHAIN, requireEnv, type Address } from "@asf/shared";
+import { ARC_CHAIN_ID, CIRCLE_BLOCKCHAIN, USDC_ADDRESS, formatUsdc, requireEnv, type Address } from "@asf/shared";
 
 export type TypedDataParams = {
   domain: { name: string; version: string; chainId: number; verifyingContract: Address; salt?: `0x${string}` };
@@ -16,6 +16,8 @@ export interface Signer {
   signTypedData(params: TypedDataParams): Promise<`0x${string}`>;
   /** Execute a contract call, wait until onchain, return the tx hash. */
   contractCall(contract: Address, abiFunctionSignature: string, abiParameters: unknown[]): Promise<{ txHash: string }>;
+  /** Direct USDC transfer (base units), wait until onchain, return the tx hash. */
+  transfer(to: Address, amount: bigint, idempotencyKey?: string): Promise<{ txHash: string }>;
 }
 
 function assertArc(chainId: number) {
@@ -61,6 +63,26 @@ export class CircleWalletSigner implements Signer {
     });
     const id = res.data?.id;
     if (!id) throw new Error("Circle createContractExecutionTransaction returned no id");
+    return this.waitConfirmed(id);
+  }
+
+  async transfer(to: Address, amount: bigint, idempotencyKey?: string) {
+    if (amount <= 0n) throw new Error("transfer amount must be positive");
+    const res = await this.client.createTransaction({
+      walletId: this.walletId,
+      tokenAddress: USDC_ADDRESS,
+      amount: [formatUsdc(amount)],
+      destinationAddress: getAddress(to),
+      fee: { type: "level", config: { feeLevel: "MEDIUM" } },
+      ...(idempotencyKey ? { idempotencyKey } : {}),
+    });
+    const id = res.data?.id;
+    if (!id) throw new Error("Circle createTransaction returned no id");
+    return this.waitConfirmed(id);
+  }
+
+  /** Wait for CONFIRMED (not just a tx hash): later calls are simulated against chain state. */
+  private async waitConfirmed(id: string) {
     const tx = await this.client.getTransaction({ id, waitForState: "CONFIRMED", signal: AbortSignal.timeout(120_000) });
     const txHash = tx.data?.transaction?.txHash;
     if (!txHash) throw new Error(`Circle transaction ${id} confirmed without a txHash`);

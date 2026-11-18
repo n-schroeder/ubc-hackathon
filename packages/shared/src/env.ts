@@ -23,5 +23,5 @@ export function requireEnv(name: string): string {
 
 export function optionalEnv(name: string, fallback?: string): string | undefined {
   loadEnv();
-  return process.env[name] ?? fallback;
+  return process.env[name] || fallback;
 }

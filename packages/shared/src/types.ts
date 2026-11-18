@@ -52,6 +52,8 @@ export type X402Quote = {
   amount: bigint;
   payTo: Address;
   extraName?: string;          // e.g. "GatewayWalletBatched"
+  extraVersion?: string;       // Gateway batching domain version ("1" | "2")
+  verifyingContract?: Address; // EIP-712 verifyingContract we'd sign for (must be the GatewayWallet)
   resource?: string;
 };
 
@@ -74,8 +76,11 @@ export type LedgerRow = {
   rule?: string;               // deciding rule (first deny / escalate), if any
   detail?: string;
   checks: CheckResult[];
-  txHash?: string;             // onchain tx hash, or Gateway transfer id for nanopayments
+  txHash?: string;             // onchain tx hash (transfers; nanopayments once Gateway batches them)
   explorerUrl?: string;
+  gatewayTransferId?: string;  // Gateway nanopayment transfer id (x402 calls)
+  vendorStatus?: number;       // HTTP status of the paid x402 request
+  decidedBy?: string;          // "firewall" or the human who approved/denied
 };
 
 /** Spending counts only rows that actually moved money. */
@@ -155,7 +160,8 @@ export type CheckContext = {
   quote?: X402Quote;           // for x402_call, the server's 402 requirements
   amount?: bigint;             // effective amount: transfer amount or quote amount
   requestKey?: string;
-  history: LedgerRow[];        // ledger rows from the last 24h, oldest first
+  history: LedgerRow[];        // ledger rows from the last 24h, oldest first (excludes this intent's own row)
+  humanApproved?: boolean;     // re-run after a human approved an escalated intent
 };
 
 export type Check = {
@@ -185,5 +191,6 @@ export type IntentResponse = {
   amount?: string;             // decimal USDC
   txHash?: string;
   explorerUrl?: string;
+  gatewayTransferId?: string;
   data?: unknown;              // the paid API's response body (x402_call, when approved)
 };

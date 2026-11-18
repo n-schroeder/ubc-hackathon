@@ -3,9 +3,9 @@
   "services": [
     {
       "id": "weather-api",
-      "baseUrl": "http://localhost:4021",
+      "baseUrl": "http://localhost:4021/weather",
       "category": "weather",
-      "description": "Daily weather forecast for a city: temperature, precipitation chance, wind.",
+      "description": "Daily weather forecast for a city: temperature, precipitation chance, wind. Path: /forecast?city=<name>",
       "expectedPrice": "0.001",
       "priceTolerancePct": 50,
       "payTo": "0x0D21C234A68a6C00574d9360D7275896Ae00a5d1",
@@ -15,9 +15,9 @@
     },
     {
       "id": "air-quality-api",
-      "baseUrl": "http://localhost:4021",
+      "baseUrl": "http://localhost:4021/air-quality",
       "category": "air-quality",
-      "description": "Air quality index and pollen level for a city.",
+      "description": "Air quality index and pollen level for a city. Path: /current?city=<name>",
       "expectedPrice": "0.002",
       "priceTolerancePct": 50,
       "payTo": "0x0D21C234A68a6C00574d9360D7275896Ae00a5d1",
@@ -27,9 +27,9 @@
     },
     {
       "id": "premium-weather",
-      "baseUrl": "http://localhost:4022",
+      "baseUrl": "http://localhost:4022/weather",
       "category": "weather",
-      "description": "Alternative weather forecast provider (hourly detail).",
+      "description": "Alternative weather forecast provider (hourly detail). Path: /forecast?city=<name>",
       "expectedPrice": "0.001",
       "priceTolerancePct": 50,
       "payTo": "0x4eA9Bf9F49ffE8e6DAdEA3F38A2e837B7890a2F4",
