@@ -61,8 +61,10 @@ export class CircleWalletSigner implements Signer {
     });
     const id = res.data?.id;
     if (!id) throw new Error("Circle createContractExecutionTransaction returned no id");
-    const tx = await this.client.getTransaction({ id, waitForTxHash: true });
-    return { txHash: tx.data.transaction.txHash };
+    const tx = await this.client.getTransaction({ id, waitForState: "CONFIRMED", signal: AbortSignal.timeout(120_000) });
+    const txHash = tx.data?.transaction?.txHash;
+    if (!txHash) throw new Error(`Circle transaction ${id} confirmed without a txHash`);
+    return { txHash };
   }
 }
 

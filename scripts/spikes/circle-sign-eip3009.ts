@@ -43,7 +43,7 @@ const pc = createPublicClient({ chain: arcTestnet, transport: http() });
 const onchain = await pc.readContract({
   address: USDC, abi: parseAbi(["function DOMAIN_SEPARATOR() view returns (bytes32)"]), functionName: "DOMAIN_SEPARATOR",
 });
-const ours = hashDomain({ domain, types: { EIP712Domain: [
+const ours = hashDomain({ domain: { ...domain, chainId: BigInt(domain.chainId) }, types: { EIP712Domain: [
   { name: "name", type: "string" }, { name: "version", type: "string" },
   { name: "chainId", type: "uint256" }, { name: "verifyingContract", type: "address" },
 ] } });
