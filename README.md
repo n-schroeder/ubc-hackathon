@@ -49,12 +49,15 @@ flowchart LR
         queue["Approval queue"]
         ledger[("Ledger<br/>SQLite, append-only")]
         signer["Signer<br/>Circle Developer-Controlled Wallet"]
+        watchdog["Onchain watchdog<br/>(own port, signed webhook only)"]
     end
 
     subgraph arc["Arc testnet + Circle Gateway"]
         gw["Gateway facilitator<br/>(x402 nanopayments, batched)"]
         usdc["USDC on Arc<br/>(direct transfers)"]
     end
+
+    qn["QuickNode Stream<br/>(Arc testnet logs)"]
 
     vendors["Vendors: x402 APIs<br/>honest (Gateway seller middleware)<br/>shady (switchable attack modes)"]
 
@@ -69,6 +72,9 @@ flowchart LR
     signer -- "signed Gateway authorization" --> vendors
     vendors -- "settle" --> gw
     signer -- "USDC transfer" --> usdc
+    usdc -. "every USDC Transfer out of the wallet" .-> qn
+    qn -- "HMAC-signed webhook" --> watchdog
+    watchdog -- "outflow nobody signed: trip the breaker" --> pipe
     api -- "decision + data, or the reason it was refused" --> agent
 ```
 
@@ -79,8 +85,9 @@ flowchart LR
 | **Signer** | [`signer.ts`](packages/firewall/src/signer.ts) | A Circle Developer-Controlled Wallet. Signing goes through Circle's API, so no private key exists anywhere in our processes. It refuses to sign for any chain other than Arc testnet (`5042002`). |
 | **Ledger** | [`store.ts`](packages/firewall/src/store.ts) | Append-only SQLite log of every intent, the agent's stated reason, every check result, the decision, and the tx hash with an explorer link. A nanopayment's hash arrives when Circle batches it onchain (2–16 min later on testnet, median ~8); until then the row shows its Gateway transfer id, and [`settlement.ts`](packages/firewall/src/settlement.ts) fills the link in. Spend windows are computed from it. |
 | **Vendors** | [`packages/vendors`](packages/vendors) | An honest x402 API (weather, air quality) built on Circle's Gateway seller middleware, and a shady one whose behaviour switches at runtime: `honest`, `overcharge`, `payee_swap`, `price_creep`, `slow_drain`, `inject`. |
-| **Dashboard** | [`packages/firewall/public`](packages/firewall/public) | Live decision log, approval queue, spend-rate chart with the breaker, active mandates, and the shady vendor's mode switch. |
-| **Red-team suite** | [`packages/redteam`](packages/redteam) | 21 attack scenarios run against the real firewall HTTP API. Guardrails are tested code, not prose in a prompt. |
+| **Onchain watchdog** | [`watchdog.ts`](packages/firewall/src/watchdog.ts) | A QuickNode Stream on Arc testnet pushes every USDC transfer out of the firewall wallet to a webhook. The watchdog matches each one against what the firewall signed, and trips the breaker on any outflow it didn't. See [Watchdog (QuickNode Streams)](#watchdog-quicknode-streams). |
+| **Dashboard** | [`packages/firewall/public`](packages/firewall/public) | Live decision log, approval queue, spend-rate chart with the breaker, the watchdog's onchain outflows, active mandates, and the shady vendor's mode switch. |
+| **Red-team suite** | [`packages/redteam`](packages/redteam) | 23 scenarios (21 attacks) run against the real firewall HTTP API. Guardrails are tested code, not prose in a prompt. |
 
 The agent's tools are `list_services`, `call_paid_api`, `send_payment`, `check_payment` and `get_mandate`. `list_services` returns only descriptions **we** wrote in [`config/registry.json`](config/registry.json), so vendor-supplied text never steers which vendor the agent picks, and only registry vendors can be paid at all.
 
@@ -197,6 +204,7 @@ Limits that are not configurable:
 | Payments outside an active mandate are refused, and a task's mandate decides whether it may make direct transfers at all (off by default). | `mandate.none_active`, `mandate.service_not_allowed`, `mandate.transfers_not_allowed` |
 | An open breaker blocks **all** spending, human-approved payments included, until a human resets it. | `breaker.open` |
 | One idempotency key is paid at most once. | (returns the original decision) |
+| With the watchdog on: any USDC that leaves the firewall wallet without a matching firewall decision trips the breaker. | `watchdog.unsigned_outflow`, `watchdog.mismatch` |
 
 The one allowlisted recipient is a wallet this project controls (the demo baseline wallet), so the allowlist has something legitimate to allow. Note how the thresholds fit together: a nanopayment can never reach the $0.25 approval threshold because of the $0.01 per-call max, so human approval is for direct transfers between $0.25 and the $1.00 cap. The velocity rules apply to the nanopayment stream only; direct transfers are each capped, allowlisted and (above the threshold) approved by a human.
 
@@ -230,6 +238,60 @@ How a paid API call works: the vendor answers `402` with its terms → the firew
 - **Deterministic finality.** One confirmation is final. "Spent" means spent, and revoking a mandate takes effect at once.
 - **The Gateway deposit is a fuse.** The firewall can only sign against what's deposited, so the worst case has a hard ceiling onchain. The firewall is the soft ceiling in front of it: two fuses.
 - **Batching makes pre-signing the only checkpoint.** Nanopayments settle later, in bulk, so nothing onchain warns you at the moment of a bad payment. The only place to stop one is before the signature, which is exactly where this firewall sits.
+
+---
+
+## Watchdog (QuickNode Streams)
+
+Everything above stops a bad payment **before** the firewall signs it. That leaves one gap: money that leaves the wallet without going through the firewall at all. The Circle API key and entity secret live in the firewall's `.env`. If they leak, or a bug signs something the ledger never recorded, the pipeline never sees it. The watchdog watches the chain itself, so it doesn't depend on the firewall's own records being complete.
+
+```
+Arc testnet ──► QuickNode Stream ──► filter (USDC Transfer, from = firewall wallet)
+                (logs dataset)              │
+                                            ▼  HMAC-signed webhook (POST /quicknode, port 4023)
+                                     Watchdog: match against the ledger
+                                            │
+                  matched ◄─────────────────┼─────────────────► no match: alert + trip the breaker
+```
+
+| | |
+|---|---|
+| Network | Arc testnet |
+| Dataset | Logs, from the latest block, batches of 5 blocks (QuickNode's minimum on sub-second chains), reorg handling on |
+| Filter | [`config/quicknode/filter.js`](config/quicknode/filter.js), run by QuickNode. It keeps logs whose `topic0` is the ERC-20 `Transfer` event, whose `from` topic is the firewall wallet, and whose emitter is USDC. It returns `null` for blocks with no match, so the webhook only hears about blocks where money left the wallet. |
+| Destination | Webhook to `POST /quicknode` on its **own port** (`WATCHDOG_PORT`, default 4023), bound to `127.0.0.1` and reached through a tunnel. Only this port is tunnelled; the agent API and admin API on 4020 never are. |
+| Authentication | QuickNode signs every delivery: hex HMAC-SHA256 of nonce + timestamp + body, keyed with the stream's security token. The webhook checks it with a constant-time compare and answers `401` before it parses anything. A replayed delivery does nothing, because outflows are de-duplicated. |
+| Code | [`watchdog.ts`](packages/firewall/src/watchdog.ts) (parsing, matching, verdicts), [`watchdog-server.ts`](packages/firewall/src/watchdog-server.ts) (the webhook), [`scripts/watchdog.ts`](scripts/watchdog.ts) (stream setup and simulation) |
+
+**Why the filter keeps two emitters.** On Arc, USDC is both the gas token and an ERC-20, and each USDC movement is logged twice: once by the ERC-20 contract `0x3600…0000` (6-decimal value) and once by Arc's native-balance pseudo-emitter `0xffff…fffe` (18-decimal value). We checked this on our own Gateway deposit tx [`0x833a…7f0d`](https://explorer.testnet.arc.io/tx/0x833a4234fdf9814a3b0b1abb5f7da7e36c1e5db1309aa8fa34fccbd816737f0d). The filter keeps both, and the watchdog turns each pair into one outflow (normalised to 6 decimals), so a movement that shows up under only one of them is still caught. Gas payments emit no `Transfer` log, so they don't show up as outflows.
+
+**Verdicts.** Each outflow is keyed by `tx:recipient:amount` and stored, so QuickNode's retries and reorg re-deliveries are no-ops. Then it gets one verdict:
+
+| Verdict | When | Effect |
+|---|---|---|
+| `matched_intent` | The ledger has a transfer with the same tx hash, recipient and amount. | Logged. |
+| `matched_in_flight` | The firewall had just decided to sign this exact recipient and amount and hadn't recorded the tx hash yet, or recorded the transfer as `failed` (for example a confirmation timeout) although it landed. Each decision can match only one outflow. | Logged. |
+| `gateway_deposit` | The recipient is the Circle GatewayWallet contract: a deposit that funds nanopayments. | Logged. |
+| `watchdog.mismatch` | The ledger has this tx hash, but a different recipient or amount. | **Alert, breaker trips.** |
+| `watchdog.unsigned_outflow` | No firewall decision explains it. | **Alert, breaker trips.** |
+
+Nanopayments don't appear here: Circle's Gateway settles them in batches from the GatewayWallet contract, not from our wallet. Their ceiling onchain is the Gateway deposit, and a deposit does show up (`gateway_deposit`).
+
+**What it can and can't do.** The watchdog detects and halts; it can't undo a transfer that is already final. When it trips the breaker, the firewall refuses all spending until a human looks at the alert on the dashboard and resets it. If the keys leaked, the attacker still has them, so the alert is the cue to rotate them. Its value is speed and independence: as soon as QuickNode delivers the block, a human sees money moving that the firewall never approved, from data that doesn't come from the firewall.
+
+**Running it.** The watchdog is off unless `QUICKNODE_STREAM_TOKEN` is set. It needs no QuickNode credentials at runtime beyond that token, and the agent refuses to start if either QuickNode variable is in its environment.
+
+```bash
+npm run watchdog:stream               # prints the stream settings, writes data/quicknode-filter.js with the wallet filled in
+npm run watchdog:stream -- --create   # or create the stream through QuickNode's REST API (QUICKNODE_API_KEY, WATCHDOG_PUBLIC_URL)
+cloudflared tunnel --url http://127.0.0.1:4023    # make the webhook port (only) reachable
+# put the stream's security token in .env as QUICKNODE_STREAM_TOKEN, then restart the firewall
+
+npm run watchdog:simulate -- deposit  # a correctly signed, SIMULATED delivery: expect gateway_deposit
+npm run watchdog:simulate -- unsigned # SIMULATED rogue outflow (made-up tx hash): expect an alert and an open breaker
+```
+
+`npm run watchdog:simulate` checks the wiring with no QuickNode account and no money. The red-team suite covers the same attacks (`unsigned-outflow`, `forged-webhook`), and [`watchdog.test.ts`](packages/firewall/test/watchdog.test.ts) covers parsing, signatures, de-duplication and every verdict.
 
 ---
 
@@ -347,6 +409,7 @@ Useful scripts:
 | `npm run firewall` / `npm run vendors` | Start one piece on its own (`npm run demo` starts both) |
 | `npm run check:vendors` | Print the 402 quote each shady mode returns, then pay the honest vendor once per endpoint through the firewall ($0.003; `-- --quotes-only` to skip paying) |
 | `npm run build:site` | Build `site/`, a static read-only replay of a recorded run's dashboard (scene by scene, no wallet or keys behind it; see [`docs/hosting.md`](docs/hosting.md)) |
+| `npm run watchdog:stream` / `watchdog:simulate` | Set up the QuickNode Stream for the onchain watchdog, or send it a simulated signed delivery (see [Watchdog](#watchdog-quicknode-streams)) |
 | `npm run docs:limits` | Regenerate this README's safety-limits tables from `config/` (`-- --check` to verify) |
 | `npm run typecheck` | TypeScript check of all packages and scripts |
 

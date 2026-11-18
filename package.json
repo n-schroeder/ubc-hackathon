@@ -24,6 +24,9 @@
     "demo": "tsx scripts/demo.ts",
     "demo:scene": "tsx scripts/demo-scene.ts",
     "redteam": "tsx packages/redteam/src/main.ts",
+    "watchdog:stream": "tsx scripts/watchdog.ts stream",
+    "watchdog:simulate": "tsx scripts/watchdog.ts simulate",
+    "watchdog:rogue": "tsx scripts/watchdog.ts rogue",
     "docs:limits": "tsx scripts/readme-limits.ts",
     "typecheck": "tsc -p .",
     "test": "vitest run"

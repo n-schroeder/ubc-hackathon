@@ -69,7 +69,7 @@ Times are targets: they add up to 2:30. Words in **bold** are what to stress.
 
 ### 5. Runaway loop (P3) · 1:27–1:52 (25 s)
 
-- **On screen:** dashboard. A run of green `premium-weather $0.001` rows (pages 1, 2, 3, …), then a red row, and the **Velocity breaker** panel flips from `CLOSED` to `OPEN` with its rule and detail. Then click **Reset breaker** on camera; the panel goes back to `CLOSED`.
+- **On screen:** dashboard. A run of green `premium-weather $0.001` rows (pages 1, 2, 3, …), then a red row, and the **Circuit breaker** panel flips from `CLOSED` to `OPEN` with its rule and detail. Then click **Reset breaker** on camera; the panel goes back to `CLOSED`.
 - **Command:** `npm run demo:scene -- 5`. It leaves the breaker open on purpose for the human reset.
 - **Which rule fires:** at $0.001 a call the per-minute rule ($0.05/min) would need 50+ calls a minute, so it doesn't fire. The pages differ (`&page=2`, `&page=3`, …), so `velocity.duplicate` doesn't fire either. What fires is **`velocity.no_progress`**. The agent harness counts distinct resources bought, ignoring page parameters (`packages/agent/src/progress.ts`), so after the first page every page reports the same progress. With `noProgressLimit` 10, the breaker trips on the 12th call, after 11 paid ($0.011):
   - `velocity.no_progress`: `11 paid calls with no task progress (still "1 resources/…"); limit 10`
@@ -91,7 +91,7 @@ Times are targets: they add up to 2:30. Words in **bold** are what to stress.
 
 - **On screen:** terminal 3, `npm run redteam`, scrolled so the P1–P4 groups and the summary line show.
 - **Command:** `npm run redteam` (no keys, about 0.3 s).
-- **Point at:** `21/21 scenarios pass · 19/19 attacks stopped with the expected rule`.
+- **Point at:** `23/23 scenarios pass · 21/21 attacks stopped with the expected rule`.
 - **Say (31 words):**
   > Every attack you just saw is also a red-team test: nineteen attacks, nineteen stopped, each by the rule we expect. Guardrails are **code with tests**, not prose in a prompt.
 
@@ -157,7 +157,7 @@ Do this in order, about 30 minutes before recording.
 
 **Reset state between scenes**
 - [ ] **Demo vendor** panel shows `honest`. The runner resets it after every step, even on Ctrl-C; if it's stuck, click `honest` in the panel.
-- [ ] **Velocity breaker** shows `CLOSED`. After scene 5, click **Reset breaker** (on camera, as part of the scene). Scene 6 resets it anyway if you forget.
+- [ ] **Circuit breaker** shows `CLOSED`. After scene 5, click **Reset breaker** (on camera, as part of the scene). Scene 6 resets it anyway if you forget.
 
 **Screen**
 - [ ] Recording at 1920×1080. Browser full-screen (F11), zoom about 125% so rule names are readable; bookmarks bar hidden; other tabs closed. Dark or light theme, the same in every scene (`#theme=dark` in the dashboard link pins it).

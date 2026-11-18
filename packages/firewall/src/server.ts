@@ -11,10 +11,12 @@
 //   GET /approvals, POST /approvals/:id {approve: boolean}
 //   GET /breaker, POST /breaker/reset
 //   GET /ledger, GET /events (SSE), GET /policy
+//   GET /watchdog            onchain outflows the QuickNode watchdog has seen, with verdicts
 import express, { type NextFunction, type Request, type Response } from "express";
 import { timingSafeEqual } from "node:crypto";
 import { formatUsdc, toListing, type LedgerRow, type Mandate, type Policy } from "@asf/shared";
 import type { Firewall } from "./firewall.ts";
+import type { Watchdog, WatchdogEvent } from "./watchdog.ts";
 
 // bigint → decimal USDC string for every JSON response
 const jsonReplacer = (_k: string, v: unknown) => (typeof v === "bigint" ? formatUsdc(v) : v);
@@ -23,7 +25,7 @@ export const mandateView = (m: Mandate) => ({ ...m, remaining: m.budget - m.spen
 export const rowView = (r: LedgerRow) => r;
 export const policyView = (p: Policy) => p;
 
-export type ServerOptions = { adminToken: string; staticDir?: string };
+export type ServerOptions = { adminToken: string; staticDir?: string; watchdog?: Watchdog };
 
 export function createApp(fw: Firewall, opts: ServerOptions) {
   const app = express();
@@ -70,6 +72,8 @@ export function createApp(fw: Firewall, opts: ServerOptions) {
   app.get("/breaker", admin, (_req, res) => res.json(fw.breaker()));
   app.post("/breaker/reset", admin, (_req, res) => res.json(fw.resetBreaker()));
   app.get("/policy", admin, (_req, res) => res.json(policyView(fw.policy)));
+  app.get("/watchdog", admin, (_req, res) =>
+    res.json({ enabled: !!opts.watchdog, wallet: opts.watchdog?.wallet, outflows: opts.watchdog?.recent() ?? [] }));
   app.get("/ledger", admin, (req, res) => res.json(fw.store.recent(Math.min(Number(req.query.limit) || 200, 1000))));
 
   app.get("/events", admin, (req, res) => {
@@ -78,6 +82,8 @@ export function createApp(fw: Firewall, opts: ServerOptions) {
     const onDecision = (r: LedgerRow) => send("decision", r);
     const onBreaker = (b: unknown) => send("breaker", b);
     const onMandate = (m: Mandate) => send("mandate", mandateView(m));
+    const onOutflow = (e: WatchdogEvent) => send("outflow", e);
+    opts.watchdog?.on("outflow", onOutflow);
     fw.on("decision", onDecision);
     fw.on("breaker", onBreaker);
     fw.on("mandate", onMandate);
@@ -88,6 +94,7 @@ export function createApp(fw: Firewall, opts: ServerOptions) {
       fw.off("decision", onDecision);
       fw.off("breaker", onBreaker);
       fw.off("mandate", onMandate);
+      opts.watchdog?.off("outflow", onOutflow);
     });
   });
 

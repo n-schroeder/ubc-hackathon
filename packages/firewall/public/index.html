@@ -63,7 +63,7 @@
 
     <aside class="side">
       <section class="panel" aria-labelledby="breaker-title">
-        <div class="panel-head"><h2 id="breaker-title">Velocity breaker</h2></div>
+        <div class="panel-head"><h2 id="breaker-title">Circuit breaker</h2></div>
         <div id="breaker" class="breaker" data-state="closed">
           <div class="breaker-main">
             <div class="breaker-state">
@@ -91,6 +91,16 @@
           </div>
           <div id="chart" class="chart" role="img" aria-label="Spend rate over the last five minutes"></div>
         </div>
+      </section>
+
+      <section class="panel" id="watchdog-panel" aria-labelledby="watchdog-title">
+        <div class="panel-head">
+          <h2 id="watchdog-title">Onchain watchdog</h2>
+          <span id="watchdog-status" class="chip" data-state="unknown">QuickNode Stream</span>
+        </div>
+        <p id="watchdog-wallet" class="muted small watchdog-wallet" hidden>Every USDC transfer out of <code id="watchdog-addr"></code>, matched against what the firewall signed.</p>
+        <ul id="watchdog" class="outflows"></ul>
+        <p id="watchdog-empty" class="empty">No outflows seen yet.</p>
       </section>
 
       <section class="panel" aria-labelledby="approvals-title">

@@ -3,15 +3,17 @@
 // (or a lying vendor) against the real firewall over HTTP, so the suite is fast, free and deterministic.
 import { formatUsdc, loadDemoAddresses, loadPolicy, parseUsdc, type IntentRequest, type IntentResponse, type Policy } from "@asf/shared";
 import { assertNoCredentials } from "@asf/agent/env";
-import type { Harness } from "./harness.ts";
+import { arcTransferLogs, streamDelivery } from "@asf/firewall/testing";
+import { FIREWALL_WALLET, type Harness } from "./harness.ts";
 
-export type Problem = "P1" | "P2" | "P3" | "P4" | "OK";
+export type Problem = "P1" | "P2" | "P3" | "P4" | "W" | "OK";
 
 export const PROBLEMS: Record<Problem, string> = {
   P1: "Prompt injection / hijacked agent",
   P2: "Lying vendor (x402 quote)",
   P3: "Runaway spending",
   P4: "Authority outside the task",
+  W: "Money moved around the firewall (onchain watchdog, QuickNode Streams)",
   OK: "Integrity",
 };
 
@@ -269,6 +271,41 @@ export const SCENARIOS: Scenario[] = [
     async run(h) {
       const m = await h.mandate({ task: "picnic" });
       return attempt(h, transfer(m.id, friend(), "0.10", "tip"));
+    },
+  },
+
+  // ------------------------------------------------------------------ W: onchain watchdog
+  {
+    id: "unsigned-outflow", problem: "W",
+    attack: "leaked Circle key: 0.05 USDC sent from the wallet, no intent",
+    expect: { outcome: "alert", rule: "watchdog.unsigned_outflow" },
+    async run(h) {
+      const m = await h.mandate({ task: "picnic" });
+      const failures: string[] = [];
+      // QuickNode delivers the Transfer the attacker made with the stolen credentials.
+      const logs = arcTransferLogs({ from: FIREWALL_WALLET, to: attacker, amount: parseUsdc("0.05"), txHash: `0x${"e".repeat(64)}` });
+      const r = await h.webhook(streamDelivery(logs));
+      if (r.status !== 200 || r.body?.alerts !== 1) failures.push(`webhook answered ${r.status} ${JSON.stringify(r.body)}`);
+      const ev = h.watchdog.recent()[0];
+      // The alert must stop the agent: its next payment is refused until a human resets the breaker.
+      const next = await h.intent(call(m.id, "weather-api", "/forecast?city=Austin"));
+      if (next.rule !== "breaker.open") failures.push(`agent's next payment was ${next.outcome} (${next.rule}), not stopped by the breaker`);
+      if (h.moved() !== 0n) failures.push(`${formatUsdc(h.moved())} USDC left through the firewall after the alert`);
+      const v = ev?.verdict;
+      return { outcome: v?.status ?? "(none)", rule: v && "rule" in v ? v.rule : "(none)", detail: v && "detail" in v ? `${v.detail}; then ${next.rule}` : undefined, failures };
+    },
+  },
+  {
+    id: "forged-webhook", problem: "W",
+    attack: "forged webhook without the stream's security token",
+    expect: { outcome: "blocked", rule: "HTTP 401" },
+    async run(h) {
+      const failures: string[] = [];
+      const logs = arcTransferLogs({ from: FIREWALL_WALLET, to: attacker, amount: parseUsdc("0.05"), txHash: `0x${"f".repeat(64)}` });
+      const r = await h.webhook(streamDelivery(logs), "attacker-guessed-token-0123456789abcdef");
+      if (h.watchdog.recent().length) failures.push("the forged delivery was recorded");
+      if (h.fw.breaker().state !== "closed") failures.push("the forged delivery tripped the breaker");
+      return { ...blocked(r.status, failures), detail: r.status === 401 ? "bad signature: refused before parsing" : undefined };
     },
   },
 

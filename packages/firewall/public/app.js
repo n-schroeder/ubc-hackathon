@@ -46,6 +46,7 @@ const state = {
   open: new Set(),       // expanded log rows
   busy: new Set(),       // approval ids with a request in flight
   ledgerTruncated: false,
+  watchdog: { available: true, enabled: null, wallet: null, outflows: new Map() }, // outflows: key → WatchdogEvent
 };
 
 const $ = (id) => document.getElementById(id);
@@ -126,6 +127,7 @@ function connect() {
   es.addEventListener("decision", (e) => upsert(JSON.parse(e.data), true));
   es.addEventListener("breaker", (e) => setBreaker(JSON.parse(e.data)));
   es.addEventListener("mandate", (e) => upsertMandate(JSON.parse(e.data)));
+  es.addEventListener("outflow", (e) => upsertOutflow(JSON.parse(e.data), true));
   es.onerror = async () => {
     if (es?.readyState === EventSource.CONNECTING) {
       setConn("reconnecting", "Reconnecting…");
@@ -147,8 +149,9 @@ function connect() {
 
 async function resync() {
   try {
-    const [policy, ledger, approvals, mandates, breaker] = await Promise.all([
+    const [policy, ledger, approvals, mandates, breaker, watchdog] = await Promise.all([
       api("/policy"), api("/ledger?limit=1000"), api("/approvals"), api("/mandates"), api("/breaker"),
+      api("/watchdog").catch((err) => { if (err instanceof AuthError) throw err; return null; }), // no route (replay site): hide the panel
     ]);
     setPolicy(policy);
     state.ledgerTruncated = ledger.length >= 1000;
@@ -160,6 +163,7 @@ async function resync() {
     state.mandates.clear();
     for (const m of mandates) state.mandates.set(m.id, m);
     setBreaker(breaker);
+    setWatchdog(watchdog);
     renderAll();
   } catch (err) {
     if (!(err instanceof AuthError)) toast(`Could not load the firewall state: ${err.message}`, "bad");
@@ -500,6 +504,67 @@ function renderRate() {
   chart.draw({ series, now, windowMs: WINDOW, limit, trips: [...state.trips] });
 }
 
+// ------------------------------------------------------------------ onchain watchdog (QuickNode Stream)
+
+const OUTFLOW_MAX = 8;
+const VERDICT = {
+  matched_intent: ["good", "matched"],
+  matched_in_flight: ["good", "matched"],
+  gateway_deposit: ["neutral", "gateway deposit"],
+};
+
+function setWatchdog(w) {
+  const wd = state.watchdog;
+  wd.available = !!w;
+  wd.enabled = w ? !!w.enabled : false;
+  wd.wallet = w?.wallet ?? null;
+  wd.outflows.clear();
+  for (const e of Array.isArray(w?.outflows) ? w.outflows : []) if (typeof e?.key === "string") wd.outflows.set(e.key, e);
+}
+
+function upsertOutflow(e, live) {
+  if (!e || typeof e.key !== "string") return;
+  state.watchdog.available = state.watchdog.enabled = true;
+  state.watchdog.outflows.set(e.key, e);
+  renderWatchdog(live ? e.key : null);
+}
+
+function renderWatchdog(flashKey) {
+  const wd = state.watchdog;
+  $("watchdog-panel").hidden = !wd.available;
+  const all = [...wd.outflows.values()].sort((a, b) => Date.parse(b.seenAt) - Date.parse(a.seenAt));
+  const alerts = all.filter((e) => e.verdict?.status === "alert").length;
+  const st = $("watchdog-status");
+  st.dataset.state = wd.enabled === null ? "unknown" : !wd.enabled ? "off" : alerts ? "alert" : "on";
+  st.textContent = wd.enabled === null ? "QuickNode Stream" : !wd.enabled ? "off" : alerts ? `${alerts} alert${alerts > 1 ? "s" : ""}` : "watching";
+  st.title = "Fed by a QuickNode Stream (Arc testnet, logs dataset)";
+  $("watchdog-wallet").hidden = !wd.wallet;
+  $("watchdog-addr").textContent = shortAddr(wd.wallet ?? "");
+  $("watchdog-addr").title = wd.wallet ?? "";
+  $("watchdog").replaceChildren(...all.slice(0, OUTFLOW_MAX).map((e) => buildOutflow(e, e.key === flashKey)));
+  $("watchdog-empty").hidden = all.length > 0;
+  $("watchdog-empty").textContent = wd.enabled === false
+    ? "Off. Set QUICKNODE_STREAM_TOKEN to turn on the independent onchain check."
+    : "No outflows seen yet. Each USDC transfer out of the wallet shows up here, with its verdict.";
+}
+
+function buildOutflow(e, flash) {
+  const v = e.verdict ?? {};
+  const alert = v.status === "alert";
+  const [tone, label] = alert ? ["bad", v.rule === "watchdog.mismatch" ? "mismatch" : "unsigned"] : VERDICT[v.status] ?? ["neutral", String(v.status ?? "?")];
+  const link = e.explorerUrl && safeUrl(e.explorerUrl);
+  return h("li", { class: `outflow${alert && flash ? " flash" : ""}`, dataset: { tone } },
+    h("div", { class: "outflow-top" },
+      h("span", { class: "badge", dataset: { tone } }, label),
+      h("span", { class: "outflow-amt" }, usd(micro(e.amount))),
+      h("span", { class: "outflow-to", title: e.to ?? "" }, "→ ", shortAddr(e.to))),
+    alert ? h("div", { class: "outflow-detail" }, h("code", { class: "rule" }, v.rule), v.detail ?? "") : null,
+    h("div", { class: "outflow-foot" },
+      h("span", { title: e.seenAt }, clock(e.seenAt), v.intentId ? ` · intent ${shortId(v.intentId)}` : ""),
+      link ? h("a", { href: link, target: "_blank", rel: "noopener noreferrer", title: e.txHash ?? link }, h("code", null, shortAddr(e.txHash ?? "")), " ↗") : null),
+  );
+}
+
 // ------------------------------------------------------------------ mandates
 
 function upsertMandate(m) {
@@ -700,6 +765,7 @@ function renderAll() {
   renderMandates();
   renderBreaker();
   renderRate();
+  renderWatchdog();
 }
 
 renderAll();

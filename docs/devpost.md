@@ -24,7 +24,7 @@ Noah Schroeder (solo), building with Claude Code.
 
 - **Main track:** Agentic Payments and AI
 - **Chain award:** Best use of Arc
-- **Bounties:** none for now. QuickNode Streams becomes worth entering only if TASK-21 ships (see below).
+- **Bounties:** QuickNode Streams. The onchain watchdog (TASK-21) is built; its live Stream still needs setting up (see below).
 
 All prizes stack except the two chain awards, and **every prize, bounties included, requires being at the closing ceremony in person on Sat Nov 21.** On the form you pick the main track, the chain award (Solana, Arc or None) and each bounty, then opt in to the matching prizes.
 
@@ -36,7 +36,7 @@ All prizes stack except the two chain awards, and **every prize, bounties includ
 |---|---|---|---|
 | Official UBC 2026 Hackathon Winner ($2,500 / $1,000 / $500) | Automatic | Yes | Nothing to select |
 | Participation prize (perks) | Automatic, at the judges' discretion | Yes, once the "What to Submit" items are done | Finish the checklist below |
-| QuickNode Streams ($500) | Opt in on Devpost | Not yet. QuickNode Streams supports Arc testnet, but the project doesn't use it | Enter only if TASK-21 ships |
+| QuickNode Streams ($500) | Opt in on Devpost | Yes. A Stream on Arc testnet feeds the onchain watchdog | Enter, once the live Stream is set up |
 | ElevenLabs (3 months of Scale) | Opt in on Devpost | No. Voice isn't part of the product | Skip |
 | Gemini Prediction Markets ($2,500 / $1,000 / $500) | Opt in on Devpost | No. Gemini's API has nothing to do with agent payments on Arc | Skip |
 | Grok Bot (keyboard + swag) | Opt in on Devpost | No, and awkward: the pitch opens with the Grok/Bankr drain | Skip |
@@ -56,17 +56,15 @@ All prizes stack except the two chain awards, and **every prize, bounties includ
 
 **QuickNode Streams ($500).** Requirements, and whether they're met:
 
-- [ ] Use QuickNode Streams as a core data source. Not met: the project reads Arc through the public RPC (`rpc.testnet.arc.io`) and Circle's APIs.
-- [ ] Configure at least one Stream with a filter and a destination, such as a webhook. Not met.
-- [ ] Explain in the README how the Stream is configured (network, dataset, filter logic, destination) and why. Not met.
+- [x] Use QuickNode Streams as a core data source. The onchain watchdog's only input is a Stream: every USDC transfer out of the firewall wallet on Arc testnet, checked against the ledger.
+- [ ] Configure at least one Stream with a filter and a destination, such as a webhook. The filter ([`config/quicknode/filter.js`](../config/quicknode/filter.js)), the signed webhook and `npm run watchdog:stream` are built and tested with simulated deliveries. **Noah: create the live Stream and tunnel** (README "Watchdog (QuickNode Streams)", Running it).
+- [x] Explain in the README how the Stream is configured (network, dataset, filter logic, destination) and why: README "Watchdog (QuickNode Streams)".
 - [x] Also be submitted to a main track and meet its requirements.
 
-A Stream would fit the security story: an independent onchain watcher on Arc testnet that filters for USDC transfers out of the firewall's wallet and the Gateway deposit, posts them to a webhook on the firewall, and checks them against the ledger. Any outflow the firewall didn't sign raises a dashboard alert and trips the circuit breaker. That catches spending that goes around the firewall, which the current checks can't see. The cost is build time before the Thursday 9 PM freeze, a QuickNode account (the free hackathon credits cover it), and a webhook URL the Stream can reach (a tunnel, for a local demo). **This is proposed as TASK-21 and is not built.** If it ships:
+What it does: a Stream on Arc testnet (logs dataset) filters for USDC `Transfer` logs from the firewall's wallet and posts them, HMAC-signed, to a webhook on the firewall's machine. The watchdog matches each outflow against the ledger. Anything the firewall didn't sign raises a dashboard alert and trips the circuit breaker. That catches spending that goes around the firewall, such as leaked Circle credentials, which the pre-signing checks can't see. Still to do:
 
-- **Noah:** opt in to the QuickNode Streams bounty on Devpost.
-- **Noah:** add the `quicknode` and `quicknode-streams` "Built with" tags.
-- **Video:** show an unsigned transfer raising the alert. Optional, but it's the evidence the sponsor judges look for.
-- **Repo:** the README section on the Stream's configuration (part of TASK-21).
+- **Noah:** set up the live Stream and tunnel, then opt in to the QuickNode Streams bounty on Devpost.
+- **Video:** show an unsigned transfer raising the alert. Optional, but it's the evidence the sponsor judges look for. `npm run watchdog:rogue -- --yes` makes one (a real 0.01 USDC transfer that bypasses the firewall).
 
 **ElevenLabs.** It requires ElevenLabs as a core feature, not an add-on, plus audio of it in the demo video and a README section. Voice approvals for held payments would be an add-on. Skip.
 
@@ -84,7 +82,7 @@ A Stream would fit the security story: an independent onchain watcher on Arc tes
 
 Paste these as Devpost "Built with" tags:
 
-`circle` · `circle-agent-stack` · `circle-wallets` · `circle-gateway` · `circle-nanopayments` · `x402` · `arc` · `usdc` · `claude` · `anthropic` · `typescript` · `node.js` · `express` · `viem` · `sqlite` · `vitest`
+`circle` · `circle-agent-stack` · `circle-wallets` · `circle-gateway` · `circle-nanopayments` · `x402` · `arc` · `usdc` · `quicknode` · `quicknode-streams` · `claude` · `anthropic` · `typescript` · `node.js` · `express` · `viem` · `sqlite` · `vitest`
 
 What each one is used for, if a field asks:
 
@@ -95,6 +93,7 @@ What each one is used for, if a field asks:
 | **Circle Gateway + Nanopayments** (`@circle-fin/x402-batching`) | Every paid API call is a sub-cent Gateway batched authorization against the GatewayWallet contract, settled onchain by Circle in batches. The honest vendor uses Circle's Gateway seller middleware. |
 | **x402** (`@x402/core`, `@x402/evm`) | The payment handshake: the vendor answers `402 Payment Required` with its terms, and the firewall reads and checks them before anything is signed. |
 | **USDC on Arc** | The only asset the firewall will pay in, and the gas token. |
+| **QuickNode Streams** | The onchain watchdog's data source: a Stream on Arc testnet (logs dataset) filters for USDC transfers out of the firewall wallet and posts them to a signed webhook, where each one is matched against the ledger. |
 | **Claude** (Anthropic API, Claude Sonnet 5.5) | The agent: a tool-use loop that does a real task by buying data. Claude Code was also the build partner for the whole project. |
 | **TypeScript / Node.js, Express, viem, SQLite (`node:sqlite`), Vitest** | Firewall service, chain reads, append-only ledger, unit tests and the red-team suite. |
 
@@ -110,7 +109,8 @@ The project has:
 - **The firewall:** an HTTP service that runs the x402 handshake for the agent, checks the vendor's quote before signing, keeps an append-only ledger of every decision (denials included), and runs the approval queue.
 - **A live dashboard:** a decision log with Arc explorer links, the approval queue, a spend-rate chart with the circuit breaker on it, the active task mandates, and a switch that changes the shady vendor's attack mode on the fly.
 - **Two vendors:** an honest x402 API built on Circle's Gateway seller middleware, and a shady one that can overcharge, swap the payee, creep its price, drain slowly, or inject instructions.
-- **A red-team suite:** 21 attack scenarios run against the real firewall API. `npm test` runs them, so the guardrails are tested code, not prose in a prompt.
+- **An onchain watchdog:** a QuickNode Stream on Arc testnet reports every USDC transfer out of the firewall's wallet. The watchdog matches each one against the ledger, and an outflow the firewall never signed trips the circuit breaker.
+- **A red-team suite:** 23 scenarios (21 attacks) run against the real firewall API. `npm test` runs them, so the guardrails are tested code, not prose in a prompt.
 
 It runs live on Arc testnet. On the demo task, picnic planning across three cities, the agent made 6 real nanopayments for weather and air-quality data (0.009 USDC in total), and Circle settled them onchain.
 
@@ -142,6 +142,8 @@ When a human starts a task (`npm run task -- "<task>"`), the launcher creates a 
 
 Every decision is written to the ledger and streamed to the dashboard. A denial goes back to the agent as an ordinary tool result (`{ outcome: "denied", rule, detail }`), so the agent can explain it and carry on, for example by switching to the honest vendor. When the task ends, the mandate closes, and the agent has zero spending authority.
 
+**After the signature.** The checks above can only stop payments that go through the firewall. A QuickNode Stream on Arc testnet watches the wallet from the outside: every USDC transfer out of it is posted to a signed webhook and matched against the ledger. A transfer the firewall never signed, say from leaked Circle credentials, raises an alert on the dashboard and trips the breaker. It can't undo a final transfer, but it stops the agent and tells a human at once.
+
 **The live comparison.** We gave the same agent and the same task a "send 0.05 USDC to unlock this data" paywall scam hidden in a vendor response. Without the firewall, it paid the attacker 0.05 USDC on Arc ([tx `0xc12d…0d77`](https://explorer.testnet.arc.io/tx/0xc12dca57023aeef6b37747583896a49b1ff367defd9160e967f4c3a19df50d77)). With the firewall, it tried the same payment, got **denied: `policy.recipient_not_allowed`**, and finished the task with the honest vendor. Nothing appeared onchain, which is the point.
 
 ## What makes it unique?
@@ -151,7 +153,8 @@ Every decision is written to the ledger and streamed to the dashboard. A denial 
 - **It watches the spending pattern, not just the size.** Per-transaction caps can't see a runaway nanopayment loop. The velocity breaker can, and it can't be fooled by a model claiming progress, because the harness counts progress from the distinct results the agent actually got.
 - **Authority is scoped to a task.** Every payment needs a live mandate with its own budget, expiry and vendor list. When the task ends, authority is zero.
 - **It's built for Arc.** USDC is the gas token, so every budget and cap is in dollars. Finality is deterministic, so "spent" means spent. The Gateway deposit is a hard onchain ceiling, and the firewall is the soft ceiling in front of it: two fuses. Because nanopayments settle later in batches, the moment before the signature is the only place a bad payment can be stopped, and that's exactly where this firewall sits.
-- **It's tested, not promised.** There are 21 attack scenarios in an automated suite, every rule id has a test, and the README's safety-limits table is generated from the config the firewall loads. A test fails if they drift apart.
+- **It checks itself against the chain.** The firewall's ledger says what it signed; a QuickNode Stream says what actually left the wallet. Any difference trips the breaker.
+- **It's tested, not promised.** There are 23 scenarios (21 attacks) in an automated suite, every rule id has a test, and the README's safety-limits table is generated from the config the firewall loads. A test fails if they drift apart.
 
 ## What would you build next?
 

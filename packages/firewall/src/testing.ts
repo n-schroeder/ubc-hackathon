@@ -63,3 +63,29 @@ export function makeRig(opts: { pipeline?: Pipeline; policy?: Policy; registry?:
   const fw = new Firewall({ store: new Store(":memory:"), policy, registry, pipeline: opts.pipeline ?? defaultPipeline(), payments: pay, now: () => clock.now });
   return { fw, pay, clock, registry, policy };
 }
+
+// ------------------------------------------------------------------ onchain watchdog fixtures
+
+const TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
+const topic = (addr: string) => `0x${"0".repeat(24)}${addr.toLowerCase().slice(2)}`;
+const hex = (n: bigint | number) => `0x${n.toString(16)}`;
+
+/** The two Transfer logs Arc emits for one USDC movement: the ERC-20 one (6 decimals) and the native one
+ *  (18 decimals), shaped like QuickNode's `logs` dataset. Pass `only` to emit just one of them. */
+export function arcTransferLogs(o: { from: string; to: string; amount: bigint; txHash: string; block?: number; only?: "erc20" | "native" }) {
+  const block = o.block ?? 72_000_000;
+  const log = (address: string, value: bigint, logIndex: number) => ({
+    address, topics: [TRANSFER_TOPIC, topic(o.from), topic(o.to)], data: `0x${value.toString(16).padStart(64, "0")}`,
+    blockNumber: hex(block), blockHash: `0x${"ab".repeat(32)}`, transactionHash: o.txHash, transactionIndex: "0x0",
+    logIndex: hex(logIndex), removed: false,
+  });
+  const logs = [];
+  if (o.only !== "erc20") logs.push(log("0xfffffffffffffffffffffffffffffffffffffffe", o.amount * 10n ** 12n, 0));
+  if (o.only !== "native") logs.push(log(USDC_ADDRESS.toLowerCase(), o.amount, 1));
+  return logs;
+}
+
+/** Wrap logs the way a QuickNode Streams webhook delivers the `logs` dataset: data[block][receipt][log]. */
+export function streamDelivery(logs: unknown[], network = "arc-testnet") {
+  return { data: [[logs]], metadata: { dataset: "logs", network, stream_name: "asf-watchdog" } };
+}

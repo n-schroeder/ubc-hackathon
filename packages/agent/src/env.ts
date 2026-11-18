@@ -16,6 +16,8 @@ export type AgentEnv = Partial<Record<(typeof AGENT_ENV)[number], string>>;
 export const FORBIDDEN_ENV = [
   "TEST_API_KEY", "ENTITY_SECRET", "CIRCLE_WALLET_SET_ID", "CIRCLE_FIREWALL_WALLET_ID", "FIREWALL_ADMIN_TOKEN",
   "BASELINE_PRIVATE_KEY",
+  // The watchdog's QuickNode credentials: with the API key an agent could pause the stream that watches it.
+  "QUICKNODE_API_KEY", "QUICKNODE_STREAM_TOKEN",
 ] as const;
 
 export function assertNoCredentials(env: NodeJS.ProcessEnv = process.env): void {

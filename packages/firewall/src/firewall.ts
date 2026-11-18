@@ -43,6 +43,8 @@ export type FirewallEvents = {
   decision: [LedgerRow];
   breaker: [BreakerState];
   mandate: [Mandate];
+  /** About to sign a USDC transfer (the onchain watchdog expects to see it). */
+  signing: [{ intentId: string; to: Address; amount: bigint }];
 };
 
 const DAY_MS = 24 * 3600 * 1000;
@@ -146,6 +148,18 @@ export class Firewall extends EventEmitter<FirewallEvents> {
     return this.store.getBreaker();
   }
 
+  /** Open the breaker from outside the pipeline (the onchain watchdog). Spending stops until a human resets it. */
+  tripBreaker(rule: string, detail: string): BreakerState {
+    const b: BreakerState = { state: "open", trippedAt: this.now().toISOString(), rule, detail, resetAt: this.store.getBreaker().resetAt };
+    this.store.setBreaker(b);
+    this.emit("breaker", b);
+    return b;
+  }
+
+  clock(): Date {
+    return this.now();
+  }
+
   resetBreaker(): BreakerState {
     // resetAt bounds the velocity windows, so spend from before the reset can't re-trip it at once.
     const b: BreakerState = { state: "closed", resetAt: this.now().toISOString() };
@@ -235,6 +249,7 @@ export class Firewall extends EventEmitter<FirewallEvents> {
     // Every check passed: sign and pay.
     try {
       if (intent.kind === "transfer") {
+        this.emit("signing", { intentId: intent.id, to: intent.recipient!, amount: intent.amount! });
         const { txHash } = await this.payments.transfer(intent.recipient!, intent.amount!, intent.id);
         return { row: { ...this.finish(row, all, "approved"), txHash, explorerUrl: txUrl(txHash) } };
       }
