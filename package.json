@@ -11,6 +11,10 @@
     "spike:sign": "tsx scripts/spikes/circle-sign-eip3009.ts",
     "spike:pay": "tsx scripts/spikes/gateway-nanopayment.ts",
     "spike:usdc": "tsx scripts/spikes/usdc-domain.ts",
+    "vendors": "tsx packages/vendors/src/main.ts",
+    "vendor:honest": "tsx packages/vendors/src/main.ts honest",
+    "vendor:shady": "tsx packages/vendors/src/main.ts shady",
+    "check:vendors": "tsx scripts/check-vendors.ts",
     "typecheck": "tsc -p .",
     "test": "vitest run"
   },
