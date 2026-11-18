@@ -15,6 +15,7 @@
     "vendor:honest": "tsx packages/vendors/src/main.ts honest",
     "vendor:shady": "tsx packages/vendors/src/main.ts shady",
     "check:vendors": "tsx scripts/check-vendors.ts",
+    "dashboard:dev": "tsx scripts/dashboard-dev.ts",
     "typecheck": "tsc -p .",
     "test": "vitest run"
   },
