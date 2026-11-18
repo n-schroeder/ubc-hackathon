@@ -499,7 +499,7 @@ Per-tx cap, daily budget, recipient allowlist, `send_payment` intents, escalatio
 
 ### M5. Mandates (P4)
 
-`MandateStore` (offchain); create/complete/expire/revoke; mandate check first in the pipeline (after the breaker); mandate spend tracking.
+Offchain mandate records (in the firewall `Store`); create/complete/expire/revoke; mandate check first in the pipeline (after the breaker); mandate spend tracking.
 
 **Exit:** "payment after task end" scenario denied with `mandate.none_active`.
 
