@@ -1,68 +1,74 @@
-# Hosting the static replay (demo.nschroeder.dev)
+# Putting the replay online (demo.nschroeder.dev)
 
-`npm run build:site` turns a recorded demo run into `site/`, a read-only replay of the firewall dashboard. It shows the same page and code as the live dashboard. A small script stands in for the firewall's API, so the recorded decisions play back in order, with scene buttons, captions and speed control. There is no server, wallet or key behind it, and nothing on it can spend. Cloudflare Pages serves the folder as is.
+The replay is a web page that looks exactly like the firewall dashboard, but plays back the rehearsal run from this afternoon instead of talking to a live firewall. Judges can click through every scene and every decision without installing anything. It has no server, wallet or keys behind it, so nothing on it can spend money.
 
-About 10 minutes, start to finish.
+You don't need to record or export anything: the recording is already in the repo at `docs/rehearsal/raw/` (`ledger.json` holds every decision and `mandates.json` holds the tasks). All 60 payments in it already link to their onchain transaction.
 
-## 1. Get the recording
+About 10 minutes.
 
-The build reads two files from `docs/rehearsal/`. Both are the firewall's own JSON, saved while it is still running after the rehearsal (TASK-16):
+## 1. Build it
 
-```bash
-TOKEN=$(grep ^FIREWALL_ADMIN_TOKEN .env | cut -d= -f2)
-curl -s -H "x-admin-token: $TOKEN" 'localhost:4020/ledger?limit=1000' > docs/rehearsal/ledger.json
-curl -s -H "x-admin-token: $TOKEN" 'localhost:4020/mandates'          > docs/rehearsal/mandates.json
-```
-
-Re-export the ledger **after Gateway has settled the batch** (a few minutes to an hour after the run). Until then, paid rows have no onchain transaction, so the replay can't link them to the explorer. The build prints how many rows have links.
-
-## 2. Build in the main checkout
-
-Build in the checkout that has `.env`. The build scans every file it writes for the values in `.env` (and for key-shaped strings). If anything matches, it deletes `site/` and prints only the env variable's name, never its value. Without `.env` it warns that only the pattern check ran.
+In the main checkout (the one with your `.env`):
 
 ```bash
-npm run build:site                                   # docs/rehearsal/ → site/
-npm run build:site -- --data path/to/run --out site  # another recording
+npm run build:site
 ```
 
-Check the output: one take per scene and pass (`dry-2 … live-6`), `secret scan: clean`, and the explorer-link count.
+It writes a folder called `site/`. Look for this in the output:
 
-## 3. Preview locally
+```
+✔ built site/ (9 files, …)
+  14 takes · 78 decisions (60 paid, 18 denied) · $0.066 spent · 60 explorer links
+  secret scan: clean (11 .env values + key patterns, 9 files)
+```
+
+The secret scan checks every file in `site/` for anything from your `.env`. If it finds anything, it deletes `site/` and stops, so a finished build is safe to upload. That's why you build in the checkout that has the `.env`.
+
+## 2. Look at it locally
 
 ```bash
-python3 -m http.server -d site 8788    # http://localhost:8788
+python3 -m http.server -d site 8788
 ```
 
-It opens on the end state, paused. Press **Play from the start**, or pick a scene button. Click a decision-log row to see every check. Admin actions (approve, reset breaker, vendor mode) are read-only here, and each has a note saying so.
+Open http://localhost:8788. It opens on the final state of the run. Press **Play from the start**, or click a scene number. Stop the server with Ctrl+C.
 
-## 4. Publish on Cloudflare Pages
+## 3. Upload to Cloudflare Pages
 
-**Direct upload (recommended while the repo is private):**
+1. Log in to the Cloudflare dashboard. Go to **Workers & Pages** → **Create** → **Pages** → **Upload assets**.
+2. Give the project a name, e.g. `agent-firewall-replay`. Drag the `site/` folder onto the page and deploy.
+3. Cloudflare gives you a `https://<name>.pages.dev` address. Open it and check it looks like step 2.
 
-1. Cloudflare dashboard → **Workers & Pages** → **Create** → **Pages** → **Upload assets**.
-2. Name the project (e.g. `agent-firewall-replay`) and drag in the `site/` folder. Cloudflare gives you a `*.pages.dev` URL. Check it there first.
-3. To update it later: rebuild, then **Create new deployment** on the same project and upload `site/` again.
+## 4. Point demo.nschroeder.dev at it
 
-**Or connect Git (once the repo is public):** build command `npm run build:site`, output directory `site`. Cloudflare's build has no `.env`, so only the pattern check runs there. Since the recording is committed and holds no secrets, that's acceptable, but direct upload from the checkout with `.env` is stricter.
+In the Pages project: **Custom domains** → **Set up a custom domain** → enter `demo.nschroeder.dev`.
 
-`site/_headers` sets a strict Content-Security-Policy (`connect-src 'self'`, no inline scripts, no framing). That's another guarantee the page can't reach a real firewall or vendor.
+- If `nschroeder.dev` is already managed by Cloudflare, it sets everything up for you.
+- If not, it shows you a CNAME record (`demo` → `<name>.pages.dev`) to add wherever your domain's DNS is.
 
-## 5. Custom domain
+The address can take a few minutes to start working.
 
-Pages project → **Custom domains** → **Set up a custom domain** → `demo.nschroeder.dev`. If `nschroeder.dev` is already on Cloudflare DNS, it adds the CNAME itself. Otherwise add `CNAME demo → <project>.pages.dev` at your DNS host. The certificate takes a few minutes.
+## 5. Later: add the video link
 
-## 6. After the video is up
+Once the demo video is uploaded, paste its link into `"videoUrl"` in [`packages/firewall/replay/notes.json`](../packages/firewall/replay/notes.json). Then run `npm run build:site` again, and in the Pages project click **Create new deployment** and upload `site/` again. The same steps apply to any other change.
 
-Put the video link in `videoUrl` in [`packages/firewall/replay/notes.json`](../packages/firewall/replay/notes.json), then rebuild and re-upload. An empty `videoUrl` hides the link. The same file holds the captions for each scene and the unsafe-baseline transaction hashes shown in scene 3.
+---
 
-## What's in site/
+## Background (optional)
+
+**Changing the captions:** the text shown for each scene is in `packages/firewall/replay/notes.json`.
+
+**Using a different recording:** `npm run build:site -- --data <folder>`. The folder needs `ledger.json` and `mandates.json`: the firewall's `GET /ledger?limit=1000` and `GET /mandates` responses (header `x-admin-token: $FIREWALL_ADMIN_TOKEN`, port 4020). A payment only gets its explorer link after Circle's Gateway settles it onchain in a batch, about 2 to 16 minutes after the payment, and the firewall fills the link in while it's running. So save the ledger a while after the run, or the build will say some paid rows have no link yet.
+
+**Building on Cloudflare from Git instead of uploading:** build command `npm run build:site`, output directory `site`. That build has no `.env`, so only the generic key-pattern check runs. Uploading a build from your checkout is stricter.
+
+**What's in `site/`:**
 
 | File | What it is |
 |---|---|
-| `index.html` | The live dashboard's `index.html` plus three tags (replay CSS, recording, replay script). The build stops if those anchor lines move. |
-| `app.js`, `chart.js`, `util.js`, `styles.css` | Copied unchanged from `packages/firewall/public/` |
-| `replay.js`, `replay.css` | The replay layer: a fake `fetch`/`EventSource` over the recording, a virtual clock, and the replay bar |
-| `replay-data.js` | The recording: sanitized ledger rows (only the fields the dashboard renders), mandates, policy, breaker and vendor-mode events, takes |
-| `_headers` | Cloudflare Pages response headers (CSP, no-referrer, nosniff) |
+| `index.html` | The live dashboard's page, plus three lines that load the replay |
+| `app.js`, `chart.js`, `util.js`, `styles.css` | The live dashboard's code, copied unchanged |
+| `replay.js`, `replay.css` | Plays the recording back in place of the live firewall, and draws the replay bar |
+| `replay-data.js` | The recording, trimmed to the fields the dashboard shows |
+| `_headers` | Security headers Cloudflare sends with the page (it can't load or call anything outside the site) |
 
-Two things are estimated, because the firewall doesn't record them: when each mandate was closed (just after its last decision), and when the breaker was reset (1 s before the next scene, as `scripts/demo-scene.ts` does).
+Two things are estimated, because the firewall doesn't record them: when each task was closed (just after its last decision), and when the velocity breaker was reset (just before the next scene, as the demo script does).
