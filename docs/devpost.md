@@ -24,6 +24,55 @@ Noah Schroeder (solo), building with Claude Code.
 
 - **Main track:** Agentic Payments and AI
 - **Chain award:** Best use of Arc
+- **Bounties:** none for now. QuickNode Streams becomes worth entering only if TASK-21 ships (see below).
+
+All prizes stack except the two chain awards, and **every prize, bounties included, requires being at the closing ceremony in person on Sat Nov 21.** On the form you pick the main track, the chain award (Solana, Arc or None) and each bounty, then opt in to the matching prizes.
+
+> **Source note.** This comes from the hackathon brief (`git show 2c4994c:claude-docs/ubc-hackathon-specs.md`, "Hackathon Prizes" and the bounty sections). The Devpost pages refuse automated fetches (HTTP 403), so they were **not** checked. Noah: when you open the form, check the Prizes tab for any bounty not listed here, and for any extra question a prize adds.
+
+### Prizes beyond the main track and the Arc award
+
+| Prize | Entry | Fit | Recommendation |
+|---|---|---|---|
+| Official UBC 2026 Hackathon Winner ($2,500 / $1,000 / $500) | Automatic | Yes | Nothing to select |
+| Participation prize (perks) | Automatic, at the judges' discretion | Yes, once the "What to Submit" items are done | Finish the checklist below |
+| QuickNode Streams ($500) | Opt in on Devpost | Not yet. QuickNode Streams supports Arc testnet, but the project doesn't use it | Enter only if TASK-21 ships |
+| ElevenLabs (3 months of Scale) | Opt in on Devpost | No. Voice isn't part of the product | Skip |
+| Gemini Prediction Markets ($2,500 / $1,000 / $500) | Opt in on Devpost | No. Gemini's API has nothing to do with agent payments on Arc | Skip |
+| Grok Bot (keyboard + swag) | Opt in on Devpost | No, and awkward: the pitch opens with the Grok/Bankr drain | Skip |
+
+**Official UBC 2026 Hackathon Winner.** Every submission is in it. Nothing to do.
+
+**Participation prize.** This needs a complete submission that meets every "What to Submit" item, judged at the judges' discretion. Each item, and whether it's met:
+
+- [x] Project name, short description, team: above.
+- [x] Main track, chain award and bounties: above.
+- [x] Written answers to the five questions: below.
+- [x] Technologies and sponsor tools: "Built with", below.
+- [ ] **Public** GitHub repo with source and setup instructions. The README has Setup and Running the demo sections. **Noah: make the repo public.**
+- [x] Working demo: runs live on Arc testnet (README "Live evidence on Arc testnet").
+- [ ] 2–3 minute demo video on YouTube or Google Drive, viewable by the judges. **Noah: record it, upload it, paste the link under Links.**
+- [x] Architecture and technical docs in the README: the Architecture, Decision loop, Safety limits and How it uses Arc sections.
+
+**QuickNode Streams ($500).** Requirements, and whether they're met:
+
+- [ ] Use QuickNode Streams as a core data source. Not met: the project reads Arc through the public RPC (`rpc.testnet.arc.io`) and Circle's APIs.
+- [ ] Configure at least one Stream with a filter and a destination, such as a webhook. Not met.
+- [ ] Explain in the README how the Stream is configured (network, dataset, filter logic, destination) and why. Not met.
+- [x] Also be submitted to a main track and meet its requirements.
+
+A Stream would fit the security story: an independent onchain watcher on Arc testnet that filters for USDC transfers out of the firewall's wallet and the Gateway deposit, posts them to a webhook on the firewall, and checks them against the ledger. Any outflow the firewall didn't sign raises a dashboard alert and trips the circuit breaker. That catches spending that goes around the firewall, which the current checks can't see. The cost is build time before the Thursday 9 PM freeze, a QuickNode account (the free hackathon credits cover it), and a webhook URL the Stream can reach (a tunnel, for a local demo). **This is proposed as TASK-21 and is not built.** If it ships:
+
+- **Noah:** opt in to the QuickNode Streams bounty on Devpost.
+- **Noah:** add the `quicknode` and `quicknode-streams` "Built with" tags.
+- **Video:** show an unsigned transfer raising the alert. Optional, but it's the evidence the sponsor judges look for.
+- **Repo:** the README section on the Stream's configuration (part of TASK-21).
+
+**ElevenLabs.** It requires ElevenLabs as a core feature, not an add-on, plus audio of it in the demo video and a README section. Voice approvals for held payments would be an add-on. Skip.
+
+**Gemini Prediction Markets.** It requires the Gemini Prediction Markets API, and judges look for tools built on top of prediction markets. The firewall could guard a betting agent, but that agent would trade through Gemini, not pay in USDC on Arc, which weakens the Arc story. Skip.
+
+**Grok Bot.** It requires Grok Bot on X as a core part of the project, a Grok Bot chat export, and a 3–4 sentence README section. None of that exists, and the pitch cites the Grok/Bankr prompt-injection drain as the problem the project solves. Skip.
 
 ## Links
 
