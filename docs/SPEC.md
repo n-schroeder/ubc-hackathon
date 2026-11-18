@@ -256,8 +256,8 @@ interface Signer {
 }
 ```
 
-- `CircleWalletSigner`: Circle Developer-Controlled Wallet; signs through Circle's API, so no key ever exists in our process. **Preferred.**
-- `LocalKeySigner`: a raw testnet private key loaded only by the firewall (viem). **Fallback** if the M0 spike shows Circle's API can't sign what Gateway/x402 needs. The process separation (and the whole demo) still holds.
+- `CircleWalletSigner`: Circle Developer-Controlled Wallet; signs through Circle's API, so no key ever exists in our process. **Chosen.** Verified 2026-11-17 by `scripts/spikes/circle-sign-eip3009.ts`: Circle's `signTypedData` produced an EIP-3009 `TransferWithAuthorization` for Arc testnet USDC that recovers to the wallet address, and our EIP-712 domain matches the token's onchain `DOMAIN_SEPARATOR`. Still to confirm in M0: Gateway's own batched-payment typed data (expected to work, since it's the same generic EIP-712 call).
+- `LocalKeySigner`: a raw testnet private key loaded only by the firewall (viem). **Fallback only**, kept in case Gateway's typed data turns out to need something Circle's API can't sign. The process separation (and the whole demo) still holds.
 
 The choice is one config value. The rest of the code never knows which is in use.
 
@@ -456,7 +456,7 @@ Each milestone ends with a commit and a passing test run. Times are targets, not
 
 Answer the three questions everything else hinges on. Each spike is a throwaway script in `scripts/spikes/`.
 
-1. **Signing path.** Can a Circle Developer-Controlled Wallet sign the EIP-712 / EIP-3009 authorization that Gateway Nanopayments / x402 need, via the API? → decides `CircleWalletSigner` vs `LocalKeySigner`.
+1. **Signing path.** ✅ *EIP-3009 part done (see §3.6).* Can a Circle Developer-Controlled Wallet sign the EIP-712 / EIP-3009 authorization that Gateway Nanopayments / x402 need, via the API? → decides `CircleWalletSigner` vs `LocalKeySigner`.
 2. **Pre-sign hook.** Can we read the 402 payment requirements before signing with `@circle-fin/x402-batching` (or the x402 fetch wrapper)? If not → hand-rolled 402 handshake.
 3. **End to end.** Deposit testnet USDC into a Gateway balance and make one real nanopayment from a script to a minimal seller on Arc testnet. Note the facilitator's rate limits.
 
@@ -545,18 +545,18 @@ Things only you can do or decide. Items 1–3 block M0, so they're needed first,
 
 ### Accounts and keys (blocking)
 
-- [ ] **1. Circle developer account.** Sign up at the Circle developer console, create an **API key** (testnet), and complete the **entity secret** setup for Developer-Controlled Wallets. Put both in `.env` (never in chat or git). If you get stuck on the entity secret step, tell me and we'll do it together.
-- [ ] **2. Testnet USDC on Arc.** From Circle's faucet, fund the wallet addresses I'll print in M0 (the firewall's wallet, and a small amount for the unsafe-baseline wallet). Testnet only; no real money anywhere in this project.
-- [ ] **3. Anthropic API key** with a few dollars of credit, for the agent's LLM. This is separate from your Claude Code subscription, which can't be used as an API key. Put it in `.env`.
+- [x] **1. Circle developer account.** *Done 2026-11-17.* Sign up at the Circle developer console, create an **API key** (testnet), and complete the **entity secret** setup for Developer-Controlled Wallets. Put both in `.env` (never in chat or git). If you get stuck on the entity secret step, tell me and we'll do it together.
+- [ ] **2. Testnet USDC on Arc.** From Circle's faucet, fund the **firewall wallet `0x115ac8ffb8241e1750ca19c26881f2a498c944b2`** (Arc Testnet). The unsafe-baseline wallet gets a small transfer from it later, so it doesn't need the faucet. Check with `npm run wallets:balances`. Testnet only; no real money anywhere in this project.
+- [x] **3. Anthropic API key** *Done 2026-11-17 ($5 credit).* with a few dollars of credit, for the agent's LLM. This is separate from your Claude Code subscription, which can't be used as an API key. Put it in `.env`.
 - [ ] **4. GitHub access for pushing.** The repo remote is `n-schroeder/ubc-hackathon`. Either run `! gh auth login` here, or plan to push yourself. The repo must be **public** by submission.
 
 ### Tooling (non-blocking)
 
 - [ ] **5. Foundry**, only if we reach the vault stretch (S4.1). Install later with `curl -L https://foundry.paradigm.xyz | bash && foundryup`. Node 24 is already installed; nothing else is needed.
 
-### Decisions (reply "use defaults" to accept all of these)
+### Decisions (all defaults accepted 2026-11-17)
 
-- [ ] **6. Policy numbers.**
+- [x] **6. Policy numbers.**
 
   | Limit | My default |
   |---|---|
@@ -566,12 +566,12 @@ Things only you can do or decide. Items 1–3 block M0, so they're needed first,
   | Daily budget | $5.00 |
   | Default task mandate | $0.50, 10-minute expiry |
 
-- [ ] **7. Price tolerance (P2).** Default: up to **+50%** over the pinned price; deny any price increase of more than **20%** over the last paid price for the same endpoint (drift).
-- [ ] **8. Unknown services (P2).** Default: **deny** in the MVP; "ask a human, then pin" is stretch S2.1.
-- [ ] **9. Breaker thresholds (P3).** Default: **$0.05/min**, **200 calls per service per task**, **5 identical requests within 60 s**, **10 paid calls with no task progress**. (The demo will temporarily use lower numbers so it trips on camera.)
-- [ ] **10. P2 in the MVP.** It's rated 🟢🟡 in the research. I've put it in the MVP because the yellow is a single integration risk with a known fallback. OK?
-- [ ] **11. Demo task.** Default: "plan a weekend picnic in 3 cities using paid weather and air-quality APIs." Pick something else if you have a better story.
-- [ ] **12. Project name.** "Agent Spending Firewall" is a placeholder.
+- [x] **7. Price tolerance (P2).** Default: up to **+50%** over the pinned price; deny any price increase of more than **20%** over the last paid price for the same endpoint (drift).
+- [x] **8. Unknown services (P2).** Default: **deny** in the MVP; "ask a human, then pin" is stretch S2.1.
+- [x] **9. Breaker thresholds (P3).** Default: **$0.05/min**, **200 calls per service per task**, **5 identical requests within 60 s**, **10 paid calls with no task progress**. (The demo will temporarily use lower numbers so it trips on camera.)
+- [x] **10. P2 in the MVP.** It's rated 🟢🟡 in the research. In the MVP because the yellow is a single integration risk with a known fallback. Confirmed.
+- [x] **11. Demo task.** Default: "plan a weekend picnic in 3 cities using paid weather and air-quality APIs." Pick something else if you have a better story.
+- [ ] **12. Project name.** Using "Agent Spending Firewall" for now; rename any time before submission.
 
 ### At the event
 
