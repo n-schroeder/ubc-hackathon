@@ -1,0 +1,17 @@
+{
+  "$comment": "Safety limits enforced by the firewall. Amounts are USDC. Defaults accepted 2026-11-17 (docs/SPEC.md §9).",
+  "perCallMax": "0.01",
+  "perTransferCap": "1.00",
+  "humanApprovalAbove": "0.25",
+  "dailyBudget": "5.00",
+  "recipientAllowlist": ["0x477a60aCA7a95EFc29949A5A051d5D599a4d6F6B"],
+  "mandateDefaults": { "budget": "0.50", "ttlSeconds": 600 },
+  "preflight": { "maxDriftPct": 20 },
+  "velocity": {
+    "perMinute": "0.05",
+    "maxCallsPerServicePerTask": 200,
+    "duplicateLimit": 5,
+    "duplicateWindowSeconds": 60,
+    "noProgressLimit": 10
+  }
+}

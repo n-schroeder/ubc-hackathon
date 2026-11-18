@@ -9,16 +9,27 @@
     "wallets:setup": "tsx scripts/setup-wallets.ts",
     "wallets:balances": "tsx scripts/balances.ts",
     "spike:sign": "tsx scripts/spikes/circle-sign-eip3009.ts",
-    "spike:usdc": "tsx scripts/spikes/usdc-domain.ts"
+    "spike:usdc": "tsx scripts/spikes/usdc-domain.ts",
+    "typecheck": "tsc -p .",
+    "test": "vitest run"
   },
   "dependencies": {
     "@circle-fin/developer-controlled-wallets": "^10.8.1",
+    "@circle-fin/x402-batching": "^4.0.0",
+    "@x402/core": "^2.31.0",
+    "@x402/evm": "^2.31.0",
     "dotenv": "^18.0.10",
+    "express": "^5.3.0",
     "viem": "^2.58.0"
   },
   "devDependencies": {
+    "@types/express": "^5.0.6",
     "@types/node": "^26.6.6",
     "tsx": "^4.23.15",
-    "typescript": "^7.0.2"
-  }
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  },
+  "workspaces": [
+    "packages/*"
+  ]
 }
