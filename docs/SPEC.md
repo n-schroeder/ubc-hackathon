@@ -64,23 +64,25 @@ The checks are the four problems from the research, stacked as layers of one pro
 
 Every item here is a hard requirement. The final milestone (M10) checks each one off.
 
+*Reconciled 2026-11-18 (TASK-10). The pointer after each box says where it is met. Open items name the card that owns them.*
+
 **Agentic Payments track**
-- [ ] The agent executes onchain transactions or reads the chain (testnet is fine).
-- [ ] The README documents the agent's **decision loop** and the **safety limits**.
+- [x] The agent executes onchain transactions or reads the chain (testnet is fine). *(README "Live evidence on Arc testnet": nanopayments settled in Gateway batch tx `0xba85…4915`, and the baseline's direct transfer `0xc12d…0d77`.)*
+- [x] The README documents the agent's **decision loop** and the **safety limits**. *(README "The decision loop" and "Safety limits". `readme-limits.test.ts` keeps the table equal to `policy.json`/`registry.json`.)*
 
 **Best use of Arc**
-- [ ] Core onchain functionality is on Arc (testnet is fine).
-- [ ] The README lists the contract addresses the project deploys **or uses** (e.g. USDC and Gateway contracts on Arc testnet) and explains how the project uses Arc.
+- [x] Core onchain functionality is on Arc (testnet is fine). *(Gateway deposit and every nanopayment are on Arc testnet. `signer.ts` refuses any chain id other than `5042002`.)*
+- [x] The README lists the contract addresses the project deploys **or uses** (e.g. USDC and Gateway contracts on Arc testnet) and explains how the project uses Arc. *(README "How it uses Arc": USDC, GatewayWallet, GatewayMinter.)*
 
 **What to Submit (all submissions)**
-- [ ] Project name, short description, team members (solo).
-- [ ] Main track, chain award, and any bounties selected on Devpost.
-- [ ] Written answers: What did you build? What problem does it solve? How does it work? What makes it unique? What would you build next?
-- [ ] Technologies and sponsor tools used.
-- [ ] **Public** GitHub repo with source code and setup instructions.
-- [ ] A working demo.
-- [ ] A 2–3 minute demo video on YouTube or Google Drive, viewable by judges.
-- [ ] Technical documentation / architecture overview in the README.
+- [ ] Project name, short description, team members (solo). *Devpost form. The name is still the working name (§9 item 12). → TASK-9 / TASK-11.*
+- [ ] Main track, chain award, and any bounties selected on Devpost. *→ TASK-11.*
+- [ ] Written answers: What did you build? What problem does it solve? How does it work? What makes it unique? What would you build next? *`docs/devpost.md` not written yet (F32). → TASK-9.*
+- [ ] Technologies and sponsor tools used. *Devpost form. → TASK-9 / TASK-11.*
+- [ ] **Public** GitHub repo with source code and setup instructions. *Source and setup instructions are done (README "Setup", `docs/TESTING.md`). The repo was still **PRIVATE** on 2026-11-18 (`gh repo view`). → TASK-11.*
+- [x] A working demo. *(`npm run demo` runs the staged scenes with no keys; `npm run demo:scene` runs them live on Arc testnet; see F31.)*
+- [ ] A 2–3 minute demo video on YouTube or Google Drive, viewable by judges. *→ TASK-11.*
+- [x] Technical documentation / architecture overview in the README. *(README "Architecture" and "The decision loop".)*
 
 **Judging criteria to aim at:** technical execution, product and UX, innovation, impact and potential, demo quality.
 
@@ -326,34 +328,36 @@ Feasibility ratings come from the research doc: 🟢 comfortable, 🟡 doable wi
 
 Everything here ships in the final submission. The MVP is "done" when every box is checked and the demo script in §8 runs end to end on Arc testnet.
 
+*Reconciled 2026-11-18 (TASK-10) against the code and the test run at that commit: `npm test` 115/115, `npm run typecheck` clean, `npm run redteam` 21/21. The F23–F27 API was also exercised live through `npm run dashboard:dev` (SSE, approvals, mandate create/revoke, breaker reset, vendor mode). Test names below are quoted from the test files. Open boxes say what's missing and which card owns it.*
+
 ### Firewall core (P1)
-- [ ] F1. Firewall HTTP service; the only process with wallet credentials.
-- [ ] F2. `Signer` interface with `CircleWalletSigner` and/or `LocalKeySigner` (per M0 result).
-- [ ] F3. Check pipeline as an ordered array of pure check functions (§3.4).
-- [ ] F4. Per-transaction cap, daily budget, recipient allowlist.
-- [ ] F5. Human approval queue above a threshold; approve/deny from the dashboard.
-- [ ] F6. Append-only SQLite ledger: intent, reason, every check result, decision, tx hash, Arc explorer link.
-- [ ] F7. Idempotency: an intent id is never paid twice.
+- [x] F1. Firewall HTTP service; the only process with wallet credentials. *(`firewall/src/server.ts`, `main.ts`. Only `main.ts` constructs the signer. The agent refuses to start with credentials: agent.test.ts "refuses to start with firewall credentials in its environment"; redteam covers the same.)*
+- [x] F2. `Signer` interface with `CircleWalletSigner` and/or `LocalKeySigner` (per M0 result). *(`firewall/src/signer.ts`: `CircleWalletSigner` only, the M0 choice; `LocalKeySigner` was not needed and is not built.)*
+- [x] F3. Check pipeline as an ordered array of pure check functions (§3.4). *(`pipeline.ts`, `checks/index.ts`. It is two ordered arrays: `beforeQuote` (breaker, mandate) runs before the vendor is contacted, `afterQuote` the rest. checks.test.ts "every check passes, in pipeline order"; core.test.ts "fails closed when a check throws".)*
+- [x] F4. Per-transaction cap, daily budget, recipient allowlist. *(`checks/policy.ts`, plus the per-call max for x402. checks.test.ts "policy (P1)": `recipient_not_allowed`, `per_tx_cap`, `per_call_max`, `daily_budget`.)*
+- [x] F5. Human approval queue above a threshold; approve/deny from the dashboard. *(`checks/escalation.ts`, `GET/POST /approvals`, dashboard approval panel. core.test.ts "escalates, waits for a human, then re-checks and pays on approval"; checks.test.ts "escalation (P1)".)*
+- [ ] F6. Append-only SQLite ledger: intent, reason, every check result, decision, tx hash, Arc explorer link. *Built in `firewall/src/store.ts`, with two caveats. (1) Not strictly append-only: when a human decides, the `pending_human` row is updated in place (`Store.update`). Every other decision is an insert. (2) Only direct transfers get `txHash` + explorer link. Nanopayment rows record the Gateway transfer id; the batch tx hash lookup planned in M0 isn't built. → TASK-12.*
+- [x] F7. Idempotency: an intent id is never paid twice. *(UNIQUE `idempotency_key` + serialized `submit`. core.test.ts "never pays twice for the same idempotency key", "serializes concurrent submissions"; redteam "same intent sent twice"; agent sends `tool_use.id` as the key.)*
 
 ### Pre-flight verifier (P2)
-- [ ] F8. `config/registry.json` service registry (price band, pinned `payTo`, asset, network).
-- [ ] F9. Firewall-driven x402 handshake: read 402 requirements → checks → sign → retry with payment.
-- [ ] F10. Checks: unknown service, `payTo` mismatch, asset/network mismatch, price outside band, per-call max, upward price drift.
-- [ ] F11. Honest vendor using Circle Gateway seller middleware (at least two endpoints, e.g. weather and air quality).
-- [ ] F12. Malicious vendor with runtime modes: `honest`, `overcharge`, `payee_swap`, `price_creep`, `slow_drain`, `inject` (prompt injection in the paid data).
+- [x] F8. `config/registry.json` service registry (price band, pinned `payTo`, asset, network). *(config.test.ts "loads registry.json with pinned, checksummed payTo".)*
+- [x] F9. Firewall-driven x402 handshake: read 402 requirements → checks → sign → retry with payment. *(`firewall/src/x402.ts` `requestQuote` → checks → `payQuote`. core.test.ts "records a ledger row and pays an x402 quote", "fails closed when the vendor's 402 can't be read"; live in M7.)*
+- [x] F10. Checks: unknown service, `payTo` mismatch, asset/network mismatch, price outside band, per-call max, upward price drift. *(`checks/preflight.ts`, plus scheme and `verifyingContract` checks. The per-call max lives in `policy.per_call_max`. checks.test.ts "pre-flight (P2)".)*
+- [x] F11. Honest vendor using Circle Gateway seller middleware (at least two endpoints, e.g. weather and air quality). *(`vendors/src/honest.ts` + `paywall.ts` (`createGatewayMiddleware`, testnet facilitator). vendors.test.ts "honest vendor".)*
+- [x] F12. Malicious vendor with runtime modes: `honest`, `overcharge`, `payee_swap`, `price_creep`, `slow_drain`, `inject` (prompt injection in the paid data). *(`vendors/src/shady.ts` `SHADY_MODES`, `GET/POST /admin/mode`. vendors.test.ts "shady vendor", one test per mode.)*
 
 ### Velocity breaker (P3)
-- [ ] F13. Rolling spend windows per minute, per task, per service (computed from the ledger).
-- [ ] F14. Trip rules: $/minute, calls per service per task, duplicate requests, spend without progress.
-- [ ] F15. Breaker state machine `closed → open`; open blocks all spending; manual reset from the dashboard.
+- [x] F13. Rolling spend windows per minute, per task, per service (computed from the ledger). *(`checks/velocity.ts` over `ctx.history`, the last 24 h of ledger rows. Windows start no earlier than the last reset (`windowStart`). checks.test.ts "the per-minute window rolls".)*
+- [x] F14. Trip rules: $/minute, calls per service per task, duplicate requests, spend without progress. *(checks.test.ts "velocity (P3)": `per_minute`, `calls_per_service`, `duplicate`, `no_progress`.)*
+- [x] F15. Breaker state machine `closed → open`; open blocks all spending; manual reset from the dashboard. *(`checks/breaker.ts`; state kept in SQLite; `POST /breaker/reset` + dashboard "Reset breaker". checks.test.ts "denies everything while open", "a human reset is a clean slate", "an approval is re-checked: it can't pay while the breaker is open".)*
 
 ### Task mandates (P4, offchain)
-- [ ] F16. Create a mandate when a task starts (budget, expiry, allowed services, description).
-- [ ] F17. Every intent must reference an active mandate; deny otherwise.
-- [ ] F18. Mandates complete on task end, expire on timeout, and can be revoked from the dashboard.
+- [x] F16. Create a mandate when a task starts (budget, expiry, allowed services, description). *(`Firewall.createMandate`, `POST /mandates` (admin token). Created by `npm run task` (`scripts/lib/task.ts`) or the dashboard's "Start a task" form.)*
+- [x] F17. Every intent must reference an active mandate; deny otherwise. *(`checks/mandate.ts`. checks.test.ts "denies an unknown mandate", "denies services outside the task's scope"; redteam `mandate.none_active`.)*
+- [x] F18. Mandates complete on task end, expire on timeout, and can be revoked from the dashboard. *(`scripts/lib/task.ts` completes the mandate when the agent exits; `Store.getMandate` expires it lazily; the dashboard has Complete/Revoke. checks.test.ts "denies payment after the task ended (completed, revoked, expired)".)*
 
 ### Vendor sanitization (P5 piece)
-- [ ] F19. `list_services()` returns only our registry descriptions; vendor metadata never reaches the LLM.
+- [x] F19. `list_services()` returns only our registry descriptions; vendor metadata never reaches the LLM. *(`toListing` in `shared/src/config.ts` → `GET /services`. config.test.ts "the agent's listing carries no addresses (P5 piece)" pins its four fields.)*
 
 ### Agent
 - [x] F20. Claude tool-use loop with the five tools in §3.5 and no credentials.
@@ -361,11 +365,11 @@ Everything here ships in the final submission. The MVP is "done" when every box 
 - [x] F22. `--unsafe` baseline mode with a separate throwaway wallet, for the side-by-side shot only. *(Live 2026-11-18: same inject task, the baseline paid the attacker 0.05 USDC, tx [`0xc12d…0d77`](https://explorer.testnet.arc.io/tx/0xc12dca57023aeef6b37747583896a49b1ff367defd9160e967f4c3a19df50d77). Fund its Gateway balance with `npm run baseline:deposit`.)*
 
 ### Dashboard
-- [ ] F23. Live decision log (SSE) with reason, rule, and explorer link per row.
-- [ ] F24. Approval queue with approve/deny buttons.
-- [ ] F25. Live spend-rate chart with breaker trip point marked; breaker reset button.
-- [ ] F26. Active mandates panel (budget, spent, expiry, revoke).
-- [ ] F27. Demo controls: malicious vendor mode switch, "start task" button.
+- [ ] F23. Live decision log (SSE) with reason, rule, and explorer link per row. *Built (`public/app.js`, `GET /events`, admin-token gated): live rows with reason, rule, every check and an explorer link for transfers. Nanopayment rows show the Gateway transfer id with no explorer link yet. → TASK-12.*
+- [x] F24. Approval queue with approve/deny buttons. *(`app.js` `renderApprovals`/`resolve` → `POST /approvals/:id`.)*
+- [x] F25. Live spend-rate chart with breaker trip point marked; breaker reset button. *(`public/chart.js`: rolling $/min line, dashed policy limit, "breaker tripped" marker; "Reset breaker" button in the breaker panel.)*
+- [x] F26. Active mandates panel (budget, spent, expiry, revoke). *(`app.js` `buildMandate`: spent/left bar, live countdown, Complete and Revoke.)*
+- [x] F27. Demo controls: malicious vendor mode switch, "start task" button. *(Vendor mode buttons drive the shady vendor's `/admin/mode`. "Start a task" creates the mandate and shows its id. The agent itself is launched from a terminal (`npm run agent -- --mandate <id>`, or `npm run task` / `npm run demo:scene`, which do both); the button doesn't spawn it.)*
 
 ### Red-team suite
 - [x] F28. Automated scenarios (Vitest), each asserting the exact denial rule:
@@ -381,9 +385,9 @@ Everything here ships in the final submission. The MVP is "done" when every box 
 - [x] F29. Scenarios run without the LLM (they drive the firewall API directly), so they are fast, free and deterministic. A separate, optional `redteam:live` script runs a couple of them through the real agent.
 
 ### Submission
-- [ ] F30. README: what it is, architecture diagram, **decision loop**, **safety limits table**, how it uses Arc (with contract addresses used), setup instructions, demo instructions, what's next.
-- [ ] F31. `.env.example`, one-command start (`npm run demo`), and a demo runner script that stages the scenarios in §8.
-- [ ] F32. Devpost written answers drafted in `docs/devpost.md`.
+- [x] F30. README: what it is, architecture diagram, **decision loop**, **safety limits table**, how it uses Arc (with contract addresses used), setup instructions, demo instructions, what's next. *(TASK-7. The limits table is generated by `npm run docs:limits` and checked by `readme-limits.test.ts`.)*
+- [x] F31. `.env.example`, one-command start (`npm run demo`), and a demo runner script that stages the scenarios in §8. *(TASK-6: `scripts/demo.ts`, `scripts/demo-scene.ts`.)*
+- [ ] F32. Devpost written answers drafted in `docs/devpost.md`. *Not written yet. → TASK-9.*
 
 ---
 
@@ -567,9 +571,9 @@ Things only you can do or decide. Items 1–3 block M0, so they're needed first,
 ### Accounts and keys (blocking)
 
 - [x] **1. Circle developer account.** *Done 2026-11-17.* Sign up at the Circle developer console, create an **API key** (testnet), and complete the **entity secret** setup for Developer-Controlled Wallets. Put both in `.env` (never in chat or git). If you get stuck on the entity secret step, tell me and we'll do it together.
-- [ ] **2. Testnet USDC on Arc.** From Circle's faucet, fund the **firewall wallet `0x115ac8ffb8241e1750ca19c26881f2a498c944b2`** (Arc Testnet). The unsafe-baseline wallet gets a small transfer from it later, so it doesn't need the faucet. Check with `npm run wallets:balances`. Testnet only; no real money anywhere in this project.
+- [x] **2. Testnet USDC on Arc.** *Done 2026-11-17: the wallet was funded and 5 USDC deposited into Gateway (deposit tx [`0x833a…7f0d`](https://explorer.testnet.arc.io/tx/0x833a4234fdf9814a3b0b1abb5f7da7e36c1e5db1309aa8fa34fccbd816737f0d)).* From Circle's faucet, fund the **firewall wallet `0x115ac8ffb8241e1750ca19c26881f2a498c944b2`** (Arc Testnet). The unsafe-baseline wallet gets a small transfer from it later, so it doesn't need the faucet. Check with `npm run wallets:balances`. Testnet only; no real money anywhere in this project.
 - [x] **3. Anthropic API key** *Done 2026-11-17 ($5 credit).* with a few dollars of credit, for the agent's LLM. This is separate from your Claude Code subscription, which can't be used as an API key. Put it in `.env`.
-- [ ] **4. GitHub access for pushing.** The repo remote is `n-schroeder/ubc-hackathon`. Either run `! gh auth login` here, or plan to push yourself. The repo must be **public** by submission.
+- [x] **4. GitHub access for pushing.** *Done: `gh` is logged in as `n-schroeder` and PRs #1–#6 were merged. Making the repo public is still open (§2, TASK-11).* The repo remote is `n-schroeder/ubc-hackathon`. Either run `! gh auth login` here, or plan to push yourself. The repo must be **public** by submission.
 
 ### Tooling (non-blocking)
 
