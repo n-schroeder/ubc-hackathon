@@ -16,6 +16,9 @@
     "vendor:shady": "tsx packages/vendors/src/main.ts shady",
     "check:vendors": "tsx scripts/check-vendors.ts",
     "dashboard:dev": "tsx scripts/dashboard-dev.ts",
+    "firewall": "tsx packages/firewall/src/main.ts",
+    "agent": "tsx packages/agent/src/main.ts",
+    "task": "tsx scripts/start-task.ts",
     "typecheck": "tsc -p .",
     "test": "vitest run"
   },
