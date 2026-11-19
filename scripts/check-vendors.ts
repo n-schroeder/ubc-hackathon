@@ -17,11 +17,7 @@ const quotesOnly = process.argv.includes("--quotes-only");
 const honest = await listen(createHonestApp().app);
 const shadyCtl = createShadyApp();
 const shady = await listen(shadyCtl.app);
-const registry: RegistryEntry[] = loadRegistry().map((e) => {
-  const u = new URL(e.baseUrl);
-  u.port = String(u.port === "4021" ? honest.port : shady.port);
-  return { ...e, baseUrl: u.toString().replace(/\/$/, "") };
-});
+const registry: RegistryEntry[] = loadRegistry(undefined, { "4021": honest.port, "4022": shady.port });
 const premium = registry.find((e) => e.id === "premium-weather")!;
 const attacker = loadDemoAddresses().attacker!;
 const who = (a: string) => (a === premium.payTo ? "pinned payTo" : a === attacker ? "ATTACKER" : "unknown");
