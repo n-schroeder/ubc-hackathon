@@ -289,9 +289,12 @@ cloudflared tunnel --url http://127.0.0.1:4023    # make the webhook port (only)
 
 npm run watchdog:simulate -- deposit  # a correctly signed, SIMULATED delivery: expect gateway_deposit
 npm run watchdog:simulate -- unsigned # SIMULATED rogue outflow (made-up tx hash): expect an alert and an open breaker
+npm run watchdog:rogue -- --yes       # REAL rogue outflow: 0.01 USDC straight from Circle to the attacker address, bypassing the firewall
 ```
 
 `npm run watchdog:simulate` checks the wiring with no QuickNode account and no money. The red-team suite covers the same attacks (`unsigned-outflow`, `forged-webhook`), and [`watchdog.test.ts`](packages/firewall/test/watchdog.test.ts) covers parsing, signatures, de-duplication and every verdict.
+
+**Live run.** `npm run watchdog:rogue -- --yes` sent 0.01 USDC from the firewall wallet to the attacker address through Circle's API directly, the way a leaked key would ([tx `0x0819…031f`](https://explorer.testnet.arc.io/tx/0x08199242cb0315d9159d0517e81ebf9fffabd74375f0395122cd67faf897031f), block 72933041). The firewall never saw the request. The block is timestamped 2026-11-19 00:14:16 UTC. QuickNode delivered it through the Stream, and at 00:14:17.8 the watchdog recorded `watchdog.unsigned_outflow` ("0.01 USDC left the firewall wallet to 0x91D0…853d in tx 0x0819…031f, and the firewall never signed it"), tripped the breaker, and showed the red UNSIGNED row on the dashboard. That is under two seconds from block to alert.
 
 ---
 
@@ -304,6 +307,7 @@ npm run watchdog:simulate -- unsigned # SIMULATED rogue outflow (made-up tx hash
 | Firewall wallet: 5 USDC deposit into GatewayWallet | [`0x833a…7f0d`](https://explorer.testnet.arc.io/tx/0x833a4234fdf9814a3b0b1abb5f7da7e36c1e5db1309aa8fa34fccbd816737f0d) |
 | First $0.001 nanopayment (Gateway transfer `9c13c246-0989-42cf-8ec4-8de7ea700fa9`), settled onchain by Circle's batch | [`0xba85…4915`](https://explorer.testnet.arc.io/tx/0xba85940fcf603601afd41d575d905b8691fd7546c766f116b14e3335618c4915) |
 | **Without the firewall:** the unsafe baseline agent, given the paywall scam, paid the attacker 0.05 USDC | [`0xc12d…0d77`](https://explorer.testnet.arc.io/tx/0xc12dca57023aeef6b37747583896a49b1ff367defd9160e967f4c3a19df50d77) |
+| **Watchdog:** a 0.01 USDC transfer that bypassed the firewall (Circle API called directly, as with leaked keys). The QuickNode Stream delivered it and the watchdog raised `watchdog.unsigned_outflow` and tripped the breaker under two seconds after the block | [`0x0819…031f`](https://explorer.testnet.arc.io/tx/0x08199242cb0315d9159d0517e81ebf9fffabd74375f0395122cd67faf897031f) |
 | **With the firewall:** the same agent and task tried the same payment and was denied `policy.recipient_not_allowed`, then finished with the honest vendor | (ledger + dashboard; nothing onchain, which is the point) |
 | Honest vendor's payee (receives the nanopayments) | [`0x0D21…a5d1`](https://explorer.testnet.arc.io/address/0x0D21C234A68a6C00574d9360D7275896Ae00a5d1) |
 | Attacker address (demo, receive-only) | [`0x91D0…853d`](https://explorer.testnet.arc.io/address/0x91D09630a50b78650170205Eb3020D9907c2853d) |
