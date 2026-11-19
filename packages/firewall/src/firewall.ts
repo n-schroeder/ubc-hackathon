@@ -254,14 +254,18 @@ export class Firewall extends EventEmitter<FirewallEvents> {
         return { row: { ...this.finish(row, all, "approved"), txHash, explorerUrl: txUrl(txHash) } };
       }
       const paid = await this.payments.payQuote(url!, quoted!.required, quoted!.option);
-      // Once a signed authorization has left the firewall, count it as spent even if the vendor errors.
+      // Once a signed authorization has left the firewall, count it as spent even if the vendor errors or its
+      // settle response doesn't confirm: Gateway can still settle the authorization later, and the
+      // SettlementWatcher reports a transfer Gateway rejects. An unconfirmed settle is only flagged here.
       const ok = paid.status >= 200 && paid.status < 300;
       return {
         row: {
           ...this.finish(row, all, "approved"),
           gatewayTransferId: paid.gatewayTransferId,
           vendorStatus: paid.status,
-          detail: ok ? `paid ${formatUsdc(ctx.amount!)} USDC` : `paid, but vendor returned HTTP ${paid.status}`,
+          detail: !ok ? `paid, but vendor returned HTTP ${paid.status}`
+            : paid.settled ? `paid ${formatUsdc(ctx.amount!)} USDC`
+            : `paid ${formatUsdc(ctx.amount!)} USDC, but the vendor did not confirm settlement`,
         },
         data: paid.data,
       };

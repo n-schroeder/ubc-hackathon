@@ -72,6 +72,7 @@ export async function requestQuote(url: string, fetchImpl: typeof fetch = fetch)
   return { kind: "quote", required, option, quote: toQuote(option, required.resource) };
 }
 
+/** `settled` is true only when the vendor's PAYMENT-RESPONSE reports `success: true`. */
 export type PaidResult = { status: number; data: unknown; gatewayTransferId?: string; settled: boolean };
 
 /** Step 2 (only after every check passed): sign exactly the option we checked and retry. */

@@ -123,6 +123,15 @@ describe("firewall core", () => {
     expect(fw.store.getMandate(m.id)!.spent).toBe(1_000n);
   });
 
+  it("flags a 2xx x402 payment whose settle wasn't confirmed, and still counts it as spent", async () => {
+    const { fw, pay, m } = rigWithMandate();
+    pay.vendorSettled = false;
+    const r = await fw.submit({ kind: "x402_call", mandateId: m.id, service: "weather-api", path: "/forecast", reason: "r" });
+    expect(r.outcome).toBe("approved");
+    expect(r.detail).toMatch(/did not confirm settlement/);
+    expect(fw.store.getMandate(m.id)!.spent).toBe(1_000n);
+  });
+
   it("trips the breaker when a check asks for it", async () => {
     const trip: Check = { name: "velocity", run: () => ({ outcome: "deny", rule: "velocity.test", detail: "x", tripBreaker: true }) };
     const { fw, m } = rigWithMandate({ beforeQuote: [], afterQuote: [trip] });
