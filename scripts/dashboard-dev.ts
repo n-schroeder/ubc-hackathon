@@ -11,10 +11,11 @@
 // to keep the breaker from tripping constantly; the runaway bursts still trip velocity.per_minute.
 import express from "express";
 import { resolve } from "node:path";
-import { REPO_ROOT, formatUsdc, loadDemoAddresses, parseUsdc, type Address, type IntentRequest, type Mandate } from "@asf/shared";
-import { defaultPipeline } from "../packages/firewall/src/checks/index.ts";
-import { createApp } from "../packages/firewall/src/server.ts";
-import { gatewayOption, makeRig } from "../packages/firewall/src/testing.ts";
+import { REPO_ROOT, loadDemoAddresses, parseUsdc, usd, type Address, type IntentRequest, type Mandate } from "@asf/shared";
+import { SHADY_MODES, isShadyMode, type ShadyMode } from "@asf/vendors/shady";
+import { defaultPipeline } from "@asf/firewall/checks/index";
+import { createApp } from "@asf/firewall/server";
+import { gatewayOption, makeRig } from "@asf/firewall/testing";
 
 const PORT = Number(process.env.FIREWALL_PORT ?? 4020);
 const VENDOR_PORT = Number(process.env.DEV_VENDOR_PORT ?? 4022);
@@ -22,8 +23,6 @@ const TICK_MS = Number(process.env.DEV_TICK_MS ?? 300);
 const RUNAWAY_EVERY = Number(process.env.DEV_RUNAWAY_EVERY ?? 90);
 const AUTO_RESET = Number(process.env.DEV_AUTO_RESET ?? 45);
 const TOKEN = "dev";
-
-const usd = (u: bigint) => `$${formatUsdc(u)}`;
 
 // ------------------------------------------------------------------ firewall + fake vendors
 
@@ -39,10 +38,8 @@ const { fw, pay, registry, policy } = rig;
 const attacker = loadDemoAddresses().attacker ?? ("0x91D09630a50b78650170205Eb3020D9907c2853d" as Address);
 const friend = policy.recipientAllowlist[0]!;
 
-// The "premium-weather" vendor misbehaves according to the demo mode (same modes as packages/vendors).
-const MODES = ["honest", "overcharge", "payee_swap", "price_creep", "slow_drain", "inject"] as const;
-type Mode = (typeof MODES)[number];
-let mode: Mode = "honest";
+// The "premium-weather" vendor misbehaves according to the demo mode (the shady vendor's modes).
+let mode: ShadyMode = "honest";
 let creep = 0;
 const premium = registry.find((s) => s.id === "premium-weather")!;
 pay.quote(`${premium.baseUrl}/`, () => {
@@ -64,14 +61,14 @@ vendor.use((req, res, next) => {
   res.set({ "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "content-type", "Access-Control-Allow-Methods": "GET,POST,OPTIONS" });
   req.method === "OPTIONS" ? res.sendStatus(204) : next();
 });
-vendor.get("/admin/mode", (_req, res) => res.json({ mode, modes: MODES }));
+vendor.get("/admin/mode", (_req, res) => res.json({ mode, modes: SHADY_MODES }));
 vendor.post("/admin/mode", (req, res) => {
   const m = req.body?.mode;
-  if (!MODES.includes(m)) return void res.status(400).json({ error: `mode must be one of ${MODES.join(", ")}` });
+  if (!isShadyMode(m)) return void res.status(400).json({ error: `mode must be one of ${SHADY_MODES.join(", ")}` });
   mode = m;
   creep = 0;
   console.log(`vendor mode → ${mode}`);
-  res.json({ mode, modes: MODES });
+  res.json({ mode, modes: SHADY_MODES });
 });
 vendor.listen(VENDOR_PORT, "127.0.0.1", () => console.log(`fake vendor admin: http://127.0.0.1:${VENDOR_PORT}/admin/mode`))
   .on("error", (e) => console.warn(`fake vendor admin not started (${(e as Error).message}); the dashboard's vendor control talks to whatever is on ${VENDOR_PORT}`));

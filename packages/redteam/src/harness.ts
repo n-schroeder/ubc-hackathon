@@ -4,6 +4,7 @@
 import type { Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import type { IntentRequest, IntentResponse, Policy } from "@asf/shared";
+import type { MandateView } from "@asf/agent/firewall-client";
 import { createApp } from "@asf/firewall/server";
 import { gatewayOption, makeRig, type TestRig } from "@asf/firewall/testing";
 import { Watchdog, signQuickNode } from "@asf/firewall/watchdog";
@@ -17,7 +18,6 @@ export const STREAM_TOKEN = "redteam-quicknode-stream-token-0123456789";
 export const FIREWALL_WALLET = "0x115ac8ffb8241e1750ca19c26881f2a498c944b2";
 
 export type MandateInput = { task: string; budget?: string; ttlSeconds?: number; allowedServices?: string[]; allowTransfers?: boolean };
-export type MandateView = { id: string; status: string; budget: string; spent: string; remaining: string };
 type Quote = Parameters<typeof gatewayOption>[0];
 
 export type Harness = TestRig & {

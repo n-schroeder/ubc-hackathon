@@ -1,8 +1,8 @@
 // P2: x402 clients sign whatever the server asks for. Pre-flight compares the vendor's 402 quote with
 // what we pinned for that service in config/registry.json before anything is signed.
-import { GATEWAY_WALLET_ADDRESS, type Check, type CheckResult } from "@asf/shared";
+import { GATEWAY_WALLET_ADDRESS, short, usd, type Check, type CheckResult } from "@asf/shared";
 import { GATEWAY_BATCHED } from "../x402.ts";
-import { deny, pass, sameAddr, short, spentRows, usd } from "./util.ts";
+import { deny, pass, sameAddr, spentRows } from "./util.ts";
 
 export const preflightCheck: Check = {
   name: "preflight",

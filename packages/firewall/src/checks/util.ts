@@ -1,11 +1,9 @@
 // Small helpers shared by the checks. Checks are pure: they read the intent and the context, nothing else.
-import { SPENT_OUTCOMES, formatUsdc, type CheckContext, type CheckResult, type LedgerRow } from "@asf/shared";
+import { SPENT_OUTCOMES, type CheckContext, type CheckResult, type LedgerRow } from "@asf/shared";
 
 export const pass = (rule: string, detail: string): CheckResult => ({ outcome: "pass", rule, detail });
 export const deny = (rule: string, detail: string, extra: Partial<CheckResult> = {}): CheckResult => ({ outcome: "deny", rule, detail, ...extra });
 
-export const usd = (units: bigint) => `$${formatUsdc(units)}`;
-export const short = (a?: string) => (a && a.length > 12 ? `${a.slice(0, 6)}…${a.slice(-4)}` : String(a ?? "?"));
 export const sameAddr = (a?: string, b?: string) => !!a && !!b && a.toLowerCase() === b.toLowerCase();
 
 export const isSpent = (r: LedgerRow) => SPENT_OUTCOMES.includes(r.outcome);

@@ -1,8 +1,9 @@
 // Test harness shared by firewall unit tests and the red-team suite: a firewall with an in-memory
 // ledger and fake payments (no network, no money). Vendors are simulated by `quotes`.
-import { ARC_NETWORK, GATEWAY_WALLET_ADDRESS, USDC_ADDRESS, loadPolicy, loadRegistry, type Address, type Policy, type RegistryEntry } from "@asf/shared";
+import { ARC_NETWORK, GATEWAY_WALLET_ADDRESS, USDC_ADDRESS, loadPolicy, loadRegistry, usdcToNative, type Address, type Policy, type RegistryEntry } from "@asf/shared";
 import { Firewall, type Payments, type Pipeline } from "./firewall.ts";
 import { Store } from "./store.ts";
+import { NATIVE_USDC_EMITTER, TRANSFER_TOPIC } from "./watchdog.ts";
 import { toQuote, type PaidResult, type PaymentOption, type PaymentRequired, type QuoteResult } from "./x402.ts";
 import { defaultPipeline } from "./checks/index.ts";
 
@@ -59,14 +60,12 @@ export function makeRig(opts: { pipeline?: Pipeline; policy?: Policy; registry?:
   const clock = { now: new Date("2026-11-19T15:00:00Z"), advance(sec: number) { this.now = new Date(this.now.getTime() + sec * 1000); } };
   const pay = new FakePayments();
   for (const s of registry) pay.quote(`${s.baseUrl}/`, gatewayOption({ amount: s.expectedPrice, payTo: s.payTo }));
-  // Services sharing a baseUrl need distinct prefixes: key by the service's conventional path too.
   const fw = new Firewall({ store: new Store(":memory:"), policy, registry, pipeline: opts.pipeline ?? defaultPipeline(), payments: pay, now: () => clock.now });
   return { fw, pay, clock, registry, policy };
 }
 
 // ------------------------------------------------------------------ onchain watchdog fixtures
 
-const TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
 const topic = (addr: string) => `0x${"0".repeat(24)}${addr.toLowerCase().slice(2)}`;
 const hex = (n: bigint | number) => `0x${n.toString(16)}`;
 
@@ -80,7 +79,7 @@ export function arcTransferLogs(o: { from: string; to: string; amount: bigint; t
     logIndex: hex(logIndex), removed: false,
   });
   const logs = [];
-  if (o.only !== "erc20") logs.push(log("0xfffffffffffffffffffffffffffffffffffffffe", o.amount * 10n ** 12n, 0));
+  if (o.only !== "erc20") logs.push(log(NATIVE_USDC_EMITTER, usdcToNative(o.amount), 0));
   if (o.only !== "native") logs.push(log(USDC_ADDRESS.toLowerCase(), o.amount, 1));
   return logs;
 }

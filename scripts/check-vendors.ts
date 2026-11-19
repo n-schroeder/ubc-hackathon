@@ -4,12 +4,12 @@
 //   npm run check:vendors            quotes + real payments
 //   npm run check:vendors -- --quotes-only
 import { loadDemoAddresses, loadPolicy, loadRegistry, usd, type RegistryEntry } from "@asf/shared";
-import { defaultPipeline } from "../packages/firewall/src/checks/index.ts";
-import { Firewall, LivePayments } from "../packages/firewall/src/firewall.ts";
-import { CircleWalletSigner } from "../packages/firewall/src/signer.ts";
-import { Store } from "../packages/firewall/src/store.ts";
-import { requestQuote } from "../packages/firewall/src/x402.ts";
-import { SHADY_MODES, createHonestApp, createShadyApp, listen } from "../packages/vendors/src/index.ts";
+import { defaultPipeline } from "@asf/firewall/checks/index";
+import { Firewall, LivePayments } from "@asf/firewall/firewall";
+import { CircleWalletSigner } from "@asf/firewall/signer";
+import { Store } from "@asf/firewall/store";
+import { requestQuote } from "@asf/firewall/x402";
+import { SHADY_MODES, createHonestApp, createShadyApp, listen } from "@asf/vendors";
 
 const quotesOnly = process.argv.includes("--quotes-only");
 
