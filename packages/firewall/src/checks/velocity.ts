@@ -8,8 +8,8 @@
 //
 // Every window starts no earlier than the last breaker reset (windowStart), so a human reset gives the
 // agent a clean slate instead of re-tripping on the next call.
-import type { Check, CheckResult } from "@asf/shared";
-import { atMs, deny, pass, spentRows, sum, usd, windowStart } from "./util.ts";
+import { usd, type Check, type CheckResult } from "@asf/shared";
+import { atMs, deny, pass, spentRows, sum, windowStart } from "./util.ts";
 
 const trip = (rule: string, detail: string, observed: string, limit: string): CheckResult =>
   deny(rule, detail, { tripBreaker: true, observed, limit });

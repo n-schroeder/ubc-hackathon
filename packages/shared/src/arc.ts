@@ -19,3 +19,5 @@ export const GATEWAY_API_TESTNET = "https://gateway-api-testnet.circle.com/v1" a
 export const EXPLORER_URL = arcTestnet.blockExplorers.default.url;
 export const txUrl = (hash: string) => `${EXPLORER_URL}/tx/${hash}`;
 export const addressUrl = (addr: string) => `${EXPLORER_URL}/address/${addr}`;
+/** "0x3600…0000" for an address or tx hash; short strings pass through, a missing one prints "?". */
+export const short = (a?: string) => (a && a.length > 12 ? `${a.slice(0, 6)}…${a.slice(-4)}` : String(a ?? "?"));

@@ -1,7 +1,7 @@
 // P1: anything over the human-approval threshold waits in the approval queue. When a human approves,
 // the firewall re-runs every check with ctx.humanApproved set, and this one passes.
-import type { Check } from "@asf/shared";
-import { pass, usd } from "./util.ts";
+import { usd, type Check } from "@asf/shared";
+import { pass } from "./util.ts";
 
 export const escalationCheck: Check = {
   name: "escalation",

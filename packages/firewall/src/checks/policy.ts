@@ -1,6 +1,6 @@
 // P1: hard caps from config/policy.json: per-call max, per-transfer cap, recipient allowlist, daily budget.
-import type { Check, CheckResult } from "@asf/shared";
-import { deny, pass, sameAddr, short, spentRows, sum, usd } from "./util.ts";
+import { short, usd, type Check, type CheckResult } from "@asf/shared";
+import { deny, pass, sameAddr, spentRows, sum } from "./util.ts";
 
 export const policyCheck: Check = {
   name: "policy",

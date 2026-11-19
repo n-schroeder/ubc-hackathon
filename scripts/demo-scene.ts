@@ -19,13 +19,13 @@
 import { randomUUID } from "node:crypto";
 import { parseArgs } from "node:util";
 import { loadDemoAddresses, loadRegistry, optionalEnv } from "@asf/shared";
-import { FirewallBackend } from "../packages/agent/src/backend.ts";
-import { loadAgentEnv } from "../packages/agent/src/env.ts";
-import { FirewallClient } from "../packages/agent/src/firewall-client.ts";
-import { runTool } from "../packages/agent/src/tools.ts";
+import { FirewallBackend } from "@asf/agent/backend";
+import { loadAgentEnv } from "@asf/agent/env";
+import { FirewallClient } from "@asf/agent/firewall-client";
+import { runTool } from "@asf/agent/tools";
+import type { ShadyMode as Mode } from "@asf/vendors/shady";
 import { admin, firewallUrl, runTask, type TaskOptions } from "./lib/task.ts";
 
-type Mode = "honest" | "overcharge" | "payee_swap" | "price_creep" | "slow_drain" | "inject";
 type Step = {
   name: string;
   title: string;
