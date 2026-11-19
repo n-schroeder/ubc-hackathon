@@ -4,10 +4,11 @@
 //                                         to data/quicknode-filter.js (for the QuickNode dashboard)
 //   npm run watchdog:stream -- --create   create the Stream through QuickNode's REST API instead
 //                                         (needs QUICKNODE_API_KEY and WATCHDOG_PUBLIC_URL in .env)
-//   npm run watchdog:simulate [-- deposit|unsigned]
+//   npm run watchdog:simulate [-- deposit|unsigned] [--public]
 //                                         POST a correctly signed, SIMULATED delivery to the local webhook,
 //                                         to check the wiring without QuickNode or money. `unsigned` (default)
 //                                         uses a made-up tx hash, so its explorer link goes nowhere.
+//                                         --public sends it through the tunnel (WATCHDOG_PUBLIC_URL) instead.
 //   npm run watchdog:rogue -- --yes       REAL testnet transfer of 0.01 USDC from the firewall wallet to the
 //                                         demo attacker, straight through Circle's API, bypassing the firewall.
 //                                         That is the attack the watchdog exists to catch. Moves real funds:
@@ -22,6 +23,11 @@ import { signQuickNode } from "@asf/firewall/watchdog";
 const cmd = process.argv[2];
 const args = process.argv.slice(3);
 const wallet = () => getAddress(requireEnv("CIRCLE_FIREWALL_WALLET_ADDRESS"));
+// The webhook's public URL (WATCHDOG_PUBLIC_URL, with or without the /quicknode suffix), or undefined.
+const publicHook = () => {
+  const hook = optionalEnv("WATCHDOG_PUBLIC_URL");
+  return hook ? `${hook.replace(/\/+$/, "").replace(/\/quicknode$/, "")}/quicknode` : undefined;
+};
 const QN_API = "https://api.quicknode.com/streams/rest/v1";
 
 function filterSource(): string {
@@ -33,8 +39,8 @@ async function stream() {
   const out = resolve(REPO_ROOT, "data/quicknode-filter.js");
   mkdirSync(resolve(out, ".."), { recursive: true });
   writeFileSync(out, src);
-  const hook = optionalEnv("WATCHDOG_PUBLIC_URL");
-  const destination = hook ? `${hook.replace(/\/+$/, "").replace(/\/quicknode$/, "")}/quicknode` : "<your tunnel URL>/quicknode";
+  const hook = publicHook();
+  const destination = hook ?? "<your tunnel URL>/quicknode";
   const network = optionalEnv("QUICKNODE_NETWORK", "arc-testnet")!;
 
   if (!args.includes("--create")) {
@@ -51,8 +57,8 @@ async function stream() {
                 Compression: none or gzip (both work). Keep the security token it shows you.
 
 Then put the token in .env as QUICKNODE_STREAM_TOKEN and restart the firewall (npm run demo or npm run firewall).
-The firewall prints "watchdog webhook on http://127.0.0.1:4023/quicknode"; tunnel that port, e.g.
-  cloudflared tunnel --url http://127.0.0.1:4023`);
+The firewall prints "watchdog webhook on http://127.0.0.1:4023/quicknode"; tunnel that port (only) with
+  npm run tunnel`);
     return;
   }
 
@@ -92,18 +98,22 @@ The firewall prints "watchdog webhook on http://127.0.0.1:4023/quicknode"; tunne
 async function simulate() {
   const token = requireEnv("QUICKNODE_STREAM_TOKEN");
   const port = optionalEnv("WATCHDOG_PORT", "4023");
-  const kind = args[0] ?? "unsigned";
+  const kind = args.find((a) => !a.startsWith("--")) ?? "unsigned";
+  // --public sends it through the tunnel (WATCHDOG_PUBLIC_URL), the way QuickNode reaches the webhook.
+  const url = args.includes("--public")
+    ? (publicHook() ?? (() => { throw new Error("--public needs WATCHDOG_PUBLIC_URL in .env"); })())
+    : `http://127.0.0.1:${port}/quicknode`;
   const logs = kind === "deposit"
     ? arcTransferLogs({ from: wallet(), to: GATEWAY_WALLET_ADDRESS, amount: parseUsdc("5"), txHash: "0x833a4234fdf9814a3b0b1abb5f7da7e36c1e5db1309aa8fa34fccbd816737f0d" })
     : arcTransferLogs({ from: wallet(), to: loadDemoAddresses().attacker!, amount: parseUsdc("0.01"), txHash: `0x${"5e".repeat(32)}` });
   const body = JSON.stringify(streamDelivery(logs));
   const nonce = Math.random().toString(36).slice(2);
   const ts = String(Math.floor(Date.now() / 1000));
-  const r = await fetch(`http://127.0.0.1:${port}/quicknode`, {
+  const r = await fetch(url, {
     method: "POST", body,
     headers: { "content-type": "application/json", "x-qn-nonce": nonce, "x-qn-timestamp": ts, "x-qn-signature": signQuickNode(token, nonce, ts, body) },
   });
-  console.log(`SIMULATED ${kind} delivery → HTTP ${r.status} ${await r.text()}`);
+  console.log(`SIMULATED ${kind} delivery to ${url} → HTTP ${r.status} ${await r.text()}`);
   if (kind !== "deposit") console.log("(made-up tx hash: this checks the wiring, it is not onchain evidence)");
 }
 
@@ -123,7 +133,7 @@ async function rogue() {
 
 const cmds: Record<string, () => Promise<void>> = { stream, simulate, rogue };
 if (!cmd || !cmds[cmd]) {
-  console.error("usage: tsx scripts/watchdog.ts stream [--create] | simulate [deposit|unsigned] | rogue --yes");
+  console.error("usage: tsx scripts/watchdog.ts stream [--create] | simulate [deposit|unsigned] [--public] | rogue --yes");
   process.exit(2);
 }
 await cmds[cmd]!();

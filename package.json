@@ -27,6 +27,7 @@
     "watchdog:stream": "tsx scripts/watchdog.ts stream",
     "watchdog:simulate": "tsx scripts/watchdog.ts simulate",
     "watchdog:rogue": "tsx scripts/watchdog.ts rogue",
+    "tunnel": "tsx scripts/tunnel.ts",
     "docs:limits": "tsx scripts/readme-limits.ts",
     "typecheck": "tsc -p .",
     "test": "vitest run"

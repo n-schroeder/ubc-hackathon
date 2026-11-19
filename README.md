@@ -284,13 +284,24 @@ Nanopayments don't appear here: Circle's Gateway settles them in batches from th
 ```bash
 npm run watchdog:stream               # prints the stream settings, writes data/quicknode-filter.js with the wallet filled in
 npm run watchdog:stream -- --create   # or create the stream through QuickNode's REST API (QUICKNODE_API_KEY, WATCHDOG_PUBLIC_URL)
-cloudflared tunnel --url http://127.0.0.1:4023    # make the webhook port (only) reachable
+npm run tunnel                        # make the webhook port (only) reachable, see "The tunnel" below
 # put the stream's security token in .env as QUICKNODE_STREAM_TOKEN, then restart the firewall
 
 npm run watchdog:simulate -- deposit  # a correctly signed, SIMULATED delivery: expect gateway_deposit
+                                      # (add --public to send it through the tunnel, the way QuickNode does)
 npm run watchdog:simulate -- unsigned # SIMULATED rogue outflow (made-up tx hash): expect an alert and an open breaker
 npm run watchdog:rogue -- --yes       # REAL rogue outflow: 0.01 USDC straight from Circle to the attacker address, bypassing the firewall
 ```
+
+**The tunnel.** `npm run tunnel` runs a named Cloudflare Tunnel when `WATCHDOG_TUNNEL` and `WATCHDOG_PUBLIC_URL` are set in `.env`. Ours is `agent-firewall` at `https://firewall.nschroeder.dev`, so the Stream's destination stays the same on every run. It generates `data/cloudflared.yml`, whose ingress forwards only `/quicknode` on that hostname to `127.0.0.1:4023`; Cloudflare answers `404` to every other path before the request reaches the machine. The URL only works while the firewall and the tunnel are running. Setting up your own takes three commands, and the credentials stay in `~/.cloudflared/`, never in the repo:
+
+```bash
+cloudflared tunnel login
+cloudflared tunnel create agent-firewall
+cloudflared tunnel route dns agent-firewall firewall.<your-domain>
+```
+
+Without those variables, `npm run tunnel` falls back to a quick tunnel (`cloudflared tunnel --url http://127.0.0.1:4023`). It needs no account, but its `trycloudflare.com` URL changes every run, so the Stream's destination has to be updated each time.
 
 `npm run watchdog:simulate` checks the wiring with no QuickNode account and no money. The red-team suite covers the same attacks (`unsigned-outflow`, `forged-webhook`), and [`watchdog.test.ts`](packages/firewall/test/watchdog.test.ts) covers parsing, signatures, de-duplication and every verdict.
 
