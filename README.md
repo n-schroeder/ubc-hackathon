@@ -1,5 +1,7 @@
 # Agent Spending Firewall
 
+<!-- "Agent Spending Firewall" is a working name; the final project name is still open (docs/SPEC.md §9 item 12). -->
+
 **An AI agent that pays for APIs with USDC nanopayments on Arc, but holds no keys. Every payment it wants to make goes to a firewall that checks it, then signs, refuses, or asks a human.**
 
 *UBC Austin Hackathon 2026 · Agentic Payments and AI track · Best use of Arc · solo entry by Noah Schroeder*
@@ -11,9 +13,11 @@ Circle Nanopayments let an agent spend in amounts too small and too fast for any
 - [The decision loop](#the-decision-loop)
 - [Safety limits](#safety-limits)
 - [How it uses Arc](#how-it-uses-arc)
+- [Watchdog (QuickNode Streams)](#watchdog-quicknode-streams)
 - [Live evidence on Arc testnet](#live-evidence-on-arc-testnet)
 - [Setup](#setup) (and [**docs/TESTING.md**](docs/TESTING.md): verify it with no keys, read the chain, or do a full live run)
 - [Running the demo](#running-the-demo)
+- [Project layout](#project-layout)
 - [What's next](#whats-next)
 
 ---
@@ -425,14 +429,55 @@ Useful scripts:
 
 | Command | What it does |
 |---|---|
-| `npm run firewall` / `npm run vendors` | Start one piece on its own (`npm run demo` starts both) |
+| `npm run firewall` / `npm run vendors` | Start one piece on its own (`npm run demo` starts both). `npm run vendor:honest` / `vendor:shady` start a single vendor |
+| `npm run agent -- --mandate <id>` | Run the agent against a mandate you created yourself (for example with the dashboard's "Start a task" form). `npm run task` does both steps for you |
 | `npm run check:vendors` | Print the 402 quote each shady mode returns, then pay the honest vendor once per endpoint through the firewall ($0.003; `-- --quotes-only` to skip paying) |
 | `npm run build:site` | Build `site/`, a static read-only replay of a recorded run's dashboard (scene by scene, no wallet or keys behind it; see [`docs/hosting.md`](docs/hosting.md)) |
-| `npm run watchdog:stream` / `watchdog:simulate` | Set up the QuickNode Stream for the onchain watchdog, or send it a simulated signed delivery (see [Watchdog](#watchdog-quicknode-streams)) |
+| `npm run watchdog:stream` / `watchdog:simulate` / `watchdog:rogue` / `tunnel` | Set up the QuickNode Stream for the onchain watchdog, send it a simulated signed delivery, send a real rogue transfer, or open the webhook tunnel (see [Watchdog](#watchdog-quicknode-streams)) |
+| `npm run spike:sign` / `spike:usdc` | The M0 spikes that proved Circle's wallet can sign Arc USDC authorizations and checked the token's EIP-712 domain. `spike:pay` (above) is the one still used for setup |
 | `npm run docs:limits` | Regenerate this README's safety-limits tables from `config/` (`-- --check` to verify) |
 | `npm run typecheck` | TypeScript check of all packages and scripts |
 
-Configuration lives in two files: [`config/policy.json`](config/policy.json) (the limits) and [`config/registry.json`](config/registry.json) (known services, their prices and pinned payees). The full build plan and design notes are in [`docs/SPEC.md`](docs/SPEC.md).
+Configuration lives in two files: [`config/policy.json`](config/policy.json) (the limits) and [`config/registry.json`](config/registry.json) (known services, their prices and pinned payees). The original build plan and design notes are in [`docs/SPEC.md`](docs/SPEC.md).
+
+---
+
+## Project layout
+
+An npm workspace: five packages under `packages/` (imported as `@asf/<name>`), plus scripts and config at the root.
+
+```
+config/
+  policy.json            the limits the firewall enforces (the Safety limits tables are generated from it)
+  registry.json          known services: price, tolerance, pinned payee, asset, network
+  quicknode/filter.js    the QuickNode Stream filter for the onchain watchdog
+packages/
+  shared/                types, bigint USDC money helpers, config and .env loading, Arc constants
+  firewall/
+    src/                 the firewall service: HTTP API (server.ts), decision logic (firewall.ts, pipeline.ts),
+                         checks/ (one file per layer), x402 handshake, Circle signer, SQLite ledger (store.ts),
+                         settlement watcher, onchain watchdog; testing.ts is the fake-payment rig the tests use
+    public/              the dashboard (plain HTML/JS, served by the firewall)
+    replay/              the static replay's player and captions (built by `npm run build:site`)
+  agent/                 the Claude tool-use loop, its five tools, the firewall client, the --unsafe baseline,
+                         and the scripted --dry model
+  vendors/               the honest x402 vendor and the shady one with switchable attack modes
+  redteam/               the attack scenarios and the `npm run redteam` runner
+scripts/                 the demo launcher and scene runner, task launcher, wallet setup and deposits,
+                         watchdog and tunnel helpers, replay build, README limits generator
+  lib/                   code shared by those scripts
+  spikes/                the M0 experiments (spike:pay is still the Gateway deposit step)
+  test/                  tests for the scripts (README limits drift, replay build)
+docs/
+  TESTING.md             how to verify the project: no keys, read the chain, or a full live run
+  SPEC.md                the original build plan, with notes on what was actually built
+  devpost.md             submission text
+  video-script.md        narration and shot list for the demo video; video/stills.html has its title cards
+  rehearsal.md           the dress rehearsal on Arc testnet; rehearsal/raw/ holds its logs and ledger
+  hosting.md             how to publish the static replay
+```
+
+Each package's tests are in its own `test/` folder; `npm test` runs them all. Two folders are created at runtime and are gitignored: `data/` (the ledger `firewall.db`, generated watchdog files) and `site/` (the replay build).
 
 ---
 

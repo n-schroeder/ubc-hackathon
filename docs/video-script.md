@@ -4,9 +4,9 @@ This covers SPEC §8 (the demo plan) and the §2 requirement for a 2–3 minute 
 
 **Target: 2:30, about 375 spoken words** (2.5 words a second, a calm pace). Record one take per scene and stitch them. The dashboard is on screen in every scene except 1, 7 and 8.
 
-> **Name.** The narration says *Agent Spending Firewall*, the working name. If G2 picks another name, change it in scene 1's title card and scene 8's last line.
+> **Name.** The narration says *Agent Spending Firewall*, the working name; the final name is still open (SPEC §9 item 12). If it changes, change it in scene 1's title card and scene 8's last line.
 >
-> **G5 (dress rehearsal) hasn't run yet.** The rules and on-screen texts below come from the code and from `npm run redteam`. After G5, check each "on screen" line against `docs/rehearsal.md` and fix the timings.
+> **Dress rehearsal.** The rules and on-screen texts below come from the code and from `npm run redteam`. The rehearsal on Arc testnet is written up in [`rehearsal.md`](rehearsal.md): use its measured step times, its "Rough edges seen on camera" and its "Before recording" list alongside this script.
 
 ---
 
@@ -18,7 +18,7 @@ This covers SPEC §8 (the demo plan) and the §2 requirement for a 2–3 minute 
 | Terminal 2 | `npm run demo:scene -- N …` | Yes, scenes 2–6 |
 | Browser | The dashboard at `http://127.0.0.1:4020/`. The page removes `#token=…` from the address bar, so it's safe to show. | Yes, scenes 2–6 |
 | Browser tab 2 | Arc testnet explorer (explorer.testnet.arc.io), opened from links | Scenes 2 and 3 |
-| Stills | G3's `docs/video/stills.html` (title, problem, diagram, why Arc) | Scenes 1 and 8 |
+| Stills | `docs/video/stills.html` (title, problem, diagram, why Arc) | Scenes 1 and 8 |
 | Terminal 3 | `npm run redteam` | Scene 7 |
 
 Layout for scenes 2–6: dashboard on the left (about two-thirds of the width), terminal 2 on the right. Or record full-screen dashboard and terminal separately and cut between them. The terminal's `firewall decisions for this task:` block, printed at the end of each step, is the cleanest close-up of the rule.
@@ -31,7 +31,7 @@ Times are targets: they add up to 2:30. Words in **bold** are what to stress.
 
 ### 1. The problem · 0:00–0:18 (18 s)
 
-- **On screen:** G3 stills. The problem card (paraphrase of the incident, with its source line), then the diagram: agent (no keys) → firewall checks → signer → Arc / Gateway.
+- **On screen:** the stills page. The problem card (paraphrase of the incident, with its source line), then the diagram: agent (no keys) → firewall checks → signer → Arc / Gateway.
 - **Command:** none.
 - **Point at:** "the agent's authority *is* the wallet's authority", then the firewall box in the diagram.
 - **Say (47 words):**
@@ -97,7 +97,7 @@ Times are targets: they add up to 2:30. Words in **bold** are what to stress.
 
 ### 8. Why Arc · 2:17–2:30 (13 s)
 
-- **On screen:** G3 "Why Arc" still (A1–A3), then the title card for the last second.
+- **On screen:** the "Why Arc" still (A1–A3), then the title card for the last second.
 - **Command:** none.
 - **Point at:** each line as it's said.
 - **Say (37 words):**
