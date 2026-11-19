@@ -7,7 +7,7 @@
 import { spawn } from "node:child_process";
 import { resolve } from "node:path";
 import { REPO_ROOT, optionalEnv, requireEnv } from "@asf/shared";
-import { loadAgentEnv } from "../../packages/agent/src/env.ts";
+import { loadAgentEnv } from "@asf/agent/env";
 
 export const firewallUrl = () => (optionalEnv("FIREWALL_URL") ?? `http://127.0.0.1:${optionalEnv("FIREWALL_PORT", "4020")}`).replace(/\/+$/, "");
 

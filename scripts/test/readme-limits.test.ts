@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { REPO_ROOT } from "@asf/shared";
-import { renderLimits, withLimits } from "../../../scripts/lib/limits-table.ts";
+import { renderLimits, withLimits } from "../lib/limits-table.ts";
 
 describe("README safety limits", () => {
   it("match config/policy.json and config/registry.json", () => {

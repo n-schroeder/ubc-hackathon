@@ -16,7 +16,7 @@ import { resolve } from "node:path";
 import { createInterface } from "node:readline";
 import { parse } from "dotenv";
 import { REPO_ROOT } from "@asf/shared";
-import { FORBIDDEN_ENV } from "../packages/agent/src/env.ts";
+import { FORBIDDEN_ENV } from "@asf/agent/env";
 
 const envPath = resolve(REPO_ROOT, ".env");
 const file = existsSync(envPath) ? parse(readFileSync(realpathSync(envPath))) : {};

@@ -26,7 +26,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { EventEmitter } from "node:events";
 import { getAddress, isAddress } from "viem";
 import {
-  GATEWAY_WALLET_ADDRESS, USDC_ADDRESS, formatUsdc, nativeToUsdc, txUrl,
+  GATEWAY_WALLET_ADDRESS, USDC_ADDRESS, formatUsdc, nativeToUsdc, short, txUrl,
   type Address, type LedgerRow,
 } from "@asf/shared";
 import type { Firewall } from "./firewall.ts";
@@ -213,4 +213,3 @@ export class Watchdog extends EventEmitter<{ outflow: [WatchdogEvent] }> {
   }
 }
 
-const short = (s: string) => (s.length > 14 ? `${s.slice(0, 6)}…${s.slice(-4)}` : s);

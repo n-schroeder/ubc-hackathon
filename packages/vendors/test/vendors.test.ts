@@ -5,8 +5,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import express from "express";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { ARC_NETWORK, GATEWAY_WALLET_ADDRESS, USDC_ADDRESS, loadDemoAddresses, loadRegistry, parseUsdc } from "@asf/shared";
-import { payQuote, requestQuote, type QuoteResult } from "../../firewall/src/x402.ts";
-import type { Signer } from "../../firewall/src/signer.ts";
+import { payQuote, requestQuote, type QuoteResult } from "@asf/firewall/x402";
+import type { Signer } from "@asf/firewall/signer";
 import { INJECT_AMOUNT, OVERCHARGE_PRICE, SHADY_MODES, createHonestApp, createShadyApp, listen, type Running } from "../src/index.ts";
 
 const registry = loadRegistry();

@@ -1,7 +1,7 @@
 // P4: every payment needs active, task-scoped authority. Runs before the firewall contacts the vendor,
 // so a payment with no authority never even produces a quote request.
-import type { Check } from "@asf/shared";
-import { deny, pass, usd } from "./util.ts";
+import { usd, type Check } from "@asf/shared";
+import { deny, pass } from "./util.ts";
 
 export const mandateCheck: Check = {
   name: "mandate",

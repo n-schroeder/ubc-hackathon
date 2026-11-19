@@ -1,7 +1,7 @@
 // The static replay build (scripts/lib/replay.ts): how a recorded ledger + mandates become takes, breaker
 // events and sanitized rows, and the secret scan that guards the published site.
 import { describe, expect, it } from "vitest";
-import { deriveReplay, findLeaks, sanitizeRow, secretNeedles, type Notes } from "../../../scripts/lib/replay.ts";
+import { deriveReplay, findLeaks, sanitizeRow, secretNeedles, type Notes } from "../lib/replay.ts";
 
 const EXPLORER = "https://testnet.arcscan.app";
 const TX = `0x${"ab".repeat(32)}`;

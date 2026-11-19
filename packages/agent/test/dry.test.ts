@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { loadDemoAddresses, parseUsdc } from "@asf/shared";
 import { createApp } from "@asf/firewall/server";
 import { gatewayOption, makeRig } from "@asf/firewall/testing";
-import { airQuality, forecast } from "../../vendors/src/data.ts";
+import { airQuality, forecast } from "@asf/vendors/data";
 import { runAgent } from "../src/agent.ts";
 import { FirewallBackend } from "../src/backend.ts";
 import { PLAYBOOKS, dryMessages } from "../src/dry.ts";

@@ -3,7 +3,7 @@
 import { DatabaseSync } from "node:sqlite";
 import { randomUUID } from "node:crypto";
 import {
-  SPENT_OUTCOMES, type BreakerState, type DecisionOutcome, type LedgerRow, type Mandate, type PaymentIntent,
+  SPENT_OUTCOMES, type BreakerState, type LedgerRow, type Mandate, type PaymentIntent,
 } from "@asf/shared";
 import type { WatchdogEvent } from "./watchdog.ts";
 
@@ -180,5 +180,3 @@ export class Store {
     this.db.prepare(`INSERT INTO kv (k, v) VALUES ('breaker', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v`).run(enc(b));
   }
 }
-
-export const isSpent = (o: DecisionOutcome) => SPENT_OUTCOMES.includes(o);
