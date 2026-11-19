@@ -100,6 +100,7 @@ export type Mandate = {
   createdAt: string;
   expiresAt: string;
   status: MandateStatus;
+  closedAt?: string;           // ISO; set when completed or revoked (not on lazy expiry)
 };
 
 // ---------------------------------------------------------------- registry (P2, P5 piece)
