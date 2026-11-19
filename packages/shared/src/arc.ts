@@ -12,8 +12,6 @@ export const CIRCLE_BLOCKCHAIN = "ARC-TESTNET" as const;
 export const USDC_ADDRESS = "0x3600000000000000000000000000000000000000" as const;
 /** Circle Gateway Wallet (deposit target) on testnets. */
 export const GATEWAY_WALLET_ADDRESS = "0x0077777d7EBA4688BDeF3E311b846F25870A19B9" as const;
-/** Circle Gateway Minter on testnets. */
-export const GATEWAY_MINTER_ADDRESS = "0x0022222ABE238Cc2C7Bb1f21003F0a260052475B" as const;
 export const GATEWAY_API_TESTNET = "https://gateway-api-testnet.circle.com/v1" as const;
 
 export const EXPLORER_URL = arcTestnet.blockExplorers.default.url;

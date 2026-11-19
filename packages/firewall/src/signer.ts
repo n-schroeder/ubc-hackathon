@@ -94,5 +94,3 @@ export class CircleWalletSigner implements Signer {
     return { txHash };
   }
 }
-
-export { CIRCLE_BLOCKCHAIN };
