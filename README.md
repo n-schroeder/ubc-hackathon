@@ -340,10 +340,12 @@ You need **Node.js 22.13 or later** (24 or 26 also work; developed on 24, see `.
 ```bash
 git clone https://github.com/n-schroeder/ubc-hackathon.git
 cd ubc-hackathon
-npm ci
+npm ci             # installs the exact versions in package-lock.json
 npm test           # unit tests + red-team scenarios
 npm run redteam    # the red-team suite with readable output (add `-- --details` for each denial's reason)
 ```
+
+Dependencies are pinned to exact versions in `package.json`, and `package-lock.json` locks the rest of the tree. Use `npm ci`, not `npm install`, so you get exactly that tree.
 
 The red-team suite drives the real firewall over its HTTP API with fake payments and no LLM, so it needs no keys, no network and no credit, and takes well under a second.
 
@@ -363,6 +365,8 @@ Fill in `.env`:
 | `ENTITY_SECRET` | Circle developer console → entity secret setup for Developer-Controlled Wallets (generate it, then register its ciphertext with Circle before running `wallets:setup`) | firewall only |
 | `FIREWALL_ADMIN_TOKEN` | any random string, e.g. `openssl rand -hex 16`. **Required** for `demo:scene` and `npm run task`: the launcher and dashboard need the same token the firewall uses | firewall, launcher, dashboard |
 | `ANTHROPIC_API_KEY` | Anthropic console (a few dollars of credit is plenty; a run costs about $0.03). Optional if you only use `--dry`. | agent only |
+
+`npm run wallets:setup` (the next step) fills in the wallet variables. Everything else in `.env.example` (ports, the ledger path, agent model settings, the watchdog's QuickNode/tunnel settings, the shady vendor's starting mode) is optional, and the comments there give each default.
 
 Then create the wallets:
 
