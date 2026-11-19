@@ -72,7 +72,7 @@ Times are targets: they add up to 2:30. Words in **bold** are what to stress.
 - **On screen:** dashboard. A run of green `premium-weather $0.001` rows (pages 1, 2, 3, …), then a red row, and the **Circuit breaker** panel flips from `CLOSED` to `OPEN` with its rule and detail. Then click **Reset breaker** on camera; the panel goes back to `CLOSED`.
 - **Command:** `npm run demo:scene -- 5`. It leaves the breaker open on purpose for the human reset.
 - **Which rule fires:** at $0.001 a call the per-minute rule ($0.05/min) would need 50+ calls a minute, so it doesn't fire. The pages differ (`&page=2`, `&page=3`, …), so `velocity.duplicate` doesn't fire either. What fires is **`velocity.no_progress`**. The agent harness counts distinct resources bought, ignoring page parameters (`packages/agent/src/progress.ts`), so after the first page every page reports the same progress. With `noProgressLimit` 10, the breaker trips on the 12th call, after 11 paid ($0.011):
-  - `velocity.no_progress`: `11 paid calls with no task progress (still "1 resources/…"); limit 10`
+  - `velocity.no_progress`: `11 paid calls in a row added nothing new to the task (still 1 resource bought); limit 10`
   - A live model that re-requests the *same* page instead trips **`velocity.duplicate`** (`6 identical requests (premium-weather/…) within 60s; limit 5`). If that's the take you use, swap the alternate line below.
 - **Don't point at the spend-rate chart.** The rate peaks around $0.011/min, far below the dashed $0.05/min line, so it doesn't "climb to the limit". Point at the breaker panel.
 - **Say (56 words):**

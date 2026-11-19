@@ -51,9 +51,19 @@ export const velocityCheck: Check = {
     let stuck = 0;
     for (let i = task.length - 1; i >= 0 && (task[i]!.taskProgress ?? "") === progress; i--) stuck++;
     if (stuck >= v.noProgressLimit) {
-      return trip("velocity.no_progress", `${stuck + 1} paid calls with no task progress (still "${progress || "none reported"}"); limit ${v.noProgressLimit}`, String(stuck + 1), String(v.noProgressLimit));
+      return trip("velocity.no_progress", `${stuck + 1} paid calls in a row added nothing new to the task (${describeProgress(progress)}); limit ${v.noProgressLimit}`, String(stuck + 1), String(v.noProgressLimit));
     }
 
     return pass("velocity.ok", `${usd(rate)}/min of ${usd(v.perMinute)}/min; ${dupes + 1} identical in ${v.duplicateWindowSeconds}s; ${stuck + 1} without progress`);
   },
 };
+
+// Readable form of taskProgress for the breaker panel. The agent harness sends "<n> resources/<digest>"
+// (packages/agent/src/progress.ts); the digest means nothing to a person, so show only the count. Any
+// other string is shown as sent. The ledger row keeps the raw taskProgress either way.
+export function describeProgress(progress: string): string {
+  if (!progress) return "no progress reported";
+  const m = /^(\d+) resources\/[0-9a-f]+$/.exec(progress);
+  if (m) return `still ${m[1]} resource${m[1] === "1" ? "" : "s"} bought`;
+  return `still "${progress}"`;
+}
