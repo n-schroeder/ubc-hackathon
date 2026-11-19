@@ -5,20 +5,24 @@
 //   BASELINE wallet  - a plain local key, used only by the "--unsafe" demo agent.
 //                      Funded with a tiny amount from the firewall wallet later.
 //
-// Safe to re-run: anything already in .env is reused, not recreated.
-import { appendFileSync, existsSync, realpathSync } from "node:fs";
+// Also writes a random FIREWALL_ADMIN_TOKEN if .env has none, so `npm run demo`, `demo:scene` and `npm run task`
+// share one token from the start.
+//
+// Safe to re-run: anything already in .env is reused, not recreated. Values are written into the existing
+// `KEY=` lines (from .env.example); only keys with no line yet are appended.
+import { randomBytes } from "node:crypto";
+import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { initiateDeveloperControlledWalletsClient } from "@circle-fin/developer-controlled-wallets";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { REPO_ROOT, loadEnv, requireEnv } from "@asf/shared";
+import { updateEnvFile } from "./lib/env-file.ts";
 
-const envFile = resolve(REPO_ROOT, ".env");
-if (!existsSync(envFile)) {
-  console.error(`No ${envFile}. Run \`cp .env.example .env\` in the repo root and fill in TEST_API_KEY and ENTITY_SECRET first (see docs/TESTING.md).`);
+const ENV_PATH = resolve(REPO_ROOT, ".env");
+if (!existsSync(ENV_PATH)) {
+  console.error(`No ${ENV_PATH}. Run \`cp .env.example .env\` in the repo root and fill in TEST_API_KEY and ENTITY_SECRET first (see docs/TESTING.md).`);
   process.exit(1);
 }
-// .env may be a symlink into the main checkout; append to the real file.
-const ENV_PATH = realpathSync(envFile);
 loadEnv();
 
 const client = initiateDeveloperControlledWalletsClient({
@@ -26,7 +30,7 @@ const client = initiateDeveloperControlledWalletsClient({
   entitySecret: requireEnv("ENTITY_SECRET"),
 });
 
-const added: string[] = [];
+const added: Record<string, string> = {};
 
 let walletId = process.env.CIRCLE_FIREWALL_WALLET_ID;
 let firewallAddress = process.env.CIRCLE_FIREWALL_WALLET_ADDRESS;
@@ -47,11 +51,11 @@ if (!walletId) {
   if (!w?.id || !w.address) throw new Error("createWallets returned no wallet");
   walletId = w.id;
   firewallAddress = w.address;
-  added.push(
-    `CIRCLE_WALLET_SET_ID=${walletSetId}`,
-    `CIRCLE_FIREWALL_WALLET_ID=${walletId}`,
-    `CIRCLE_FIREWALL_WALLET_ADDRESS=${firewallAddress}`,
-  );
+  Object.assign(added, {
+    CIRCLE_WALLET_SET_ID: walletSetId,
+    CIRCLE_FIREWALL_WALLET_ID: walletId,
+    CIRCLE_FIREWALL_WALLET_ADDRESS: firewallAddress,
+  });
 }
 
 let baselineAddress: string;
@@ -60,17 +64,15 @@ if (process.env.BASELINE_PRIVATE_KEY) {
 } else {
   const pk = generatePrivateKey();
   baselineAddress = privateKeyToAccount(pk).address;
-  added.push(
-    `# Unsafe-baseline demo wallet (testnet only, never used by the firewall)`,
-    `BASELINE_PRIVATE_KEY=${pk}`,
-    `BASELINE_ADDRESS=${baselineAddress}`,
-  );
+  Object.assign(added, { BASELINE_PRIVATE_KEY: pk, BASELINE_ADDRESS: baselineAddress });
 }
 
-if (added.length) {
-  appendFileSync(ENV_PATH, `\n# --- added by scripts/setup-wallets.ts ---\n${added.join("\n")}\n`);
-}
+if (!process.env.FIREWALL_ADMIN_TOKEN) added.FIREWALL_ADMIN_TOKEN = randomBytes(16).toString("hex");
+
+// updateEnvFile follows a symlinked .env (a worktree's may point into the main checkout).
+const names = Object.keys(added);
+if (names.length) updateEnvFile(ENV_PATH, added, "added by scripts/setup-wallets.ts");
 
 console.log(`Firewall wallet (Circle, fund this one): ${firewallAddress}`);
 console.log(`Baseline wallet (local key, funded later from the firewall wallet): ${baselineAddress}`);
-console.log(added.length ? `Recorded new values in .env` : `Nothing new; reused values from .env`);
+console.log(names.length ? `Wrote ${names.join(", ")} to .env` : `Nothing new; reused values from .env`);
