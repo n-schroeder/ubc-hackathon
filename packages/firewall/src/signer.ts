@@ -68,14 +68,19 @@ export class CircleWalletSigner implements Signer {
 
   async transfer(to: Address, amount: bigint, idempotencyKey?: string) {
     if (amount <= 0n) throw new Error("transfer amount must be positive");
-    const res = await this.client.createTransaction({
+    // Circle's API needs `blockchain` alongside `tokenAddress` (only a tokenId stands alone); without it, HTTP 400
+    // "API parameter invalid". The SDK's types forbid `blockchain` next to `walletId`, but the SDK sends every field
+    // through as is, hence the cast.
+    const input = {
       walletId: this.walletId,
       tokenAddress: USDC_ADDRESS,
+      blockchain: CIRCLE_BLOCKCHAIN,
       amount: [formatUsdc(amount)],
       destinationAddress: getAddress(to),
       fee: { type: "level", config: { feeLevel: "MEDIUM" } },
       ...(idempotencyKey ? { idempotencyKey } : {}),
-    });
+    } as const;
+    const res = await this.client.createTransaction(input as unknown as Parameters<typeof this.client.createTransaction>[0]);
     const id = res.data?.id;
     if (!id) throw new Error("Circle createTransaction returned no id");
     return this.waitConfirmed(id);
