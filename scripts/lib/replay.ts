@@ -44,7 +44,7 @@ const ROW_KEYS = [
   "outcome", "rule", "detail", "checks", "decidedBy", "requestKey", "vendorStatus", "txHash", "explorerUrl", "gatewayTransferId",
 ] as const;
 const CHECK_KEYS = ["outcome", "rule", "detail", "observed", "limit", "tripBreaker"] as const;
-const MANDATE_KEYS = ["id", "task", "budget", "spent", "allowedServices", "allowTransfers", "createdAt", "expiresAt", "status"] as const;
+const MANDATE_KEYS = ["id", "task", "budget", "spent", "allowedServices", "allowTransfers", "createdAt", "expiresAt", "status", "closedAt"] as const;
 const SPENT = new Set(["approved", "human_approved"]);
 const DENIED = new Set(["denied", "human_denied"]);
 const TX = /^0x[0-9a-fA-F]{64}$/;
@@ -95,9 +95,10 @@ export function deriveReplay(ledger: Json[], mandatesIn: Json[], policy: Json, n
     const createdAt = ms(m.createdAt);
     const next = mandates[i + 1] ? ms(mandates[i + 1]!.createdAt) : undefined;
 
-    // When the scene runner closed the mandate isn't recorded: estimate it from the rows around it.
-    let closedAt: number | undefined;
-    if (m.status !== "active") {
+    // Completed/revoked mandates record closedAt; older recordings (and expired mandates) don't,
+    // so estimate it from the rows around it.
+    let closedAt: number | undefined = m.closedAt ? ms(m.closedAt) : undefined;
+    if (m.status !== "active" && closedAt === undefined) {
       const late = own.find((r) => r.rule === "mandate.none_active");
       const before = own.filter((r) => !late || ms(r.at) < ms(late.at));
       closedAt = Math.max(createdAt + 2000, (before.length ? ms(before.at(-1)!.at) : createdAt) + 1500);

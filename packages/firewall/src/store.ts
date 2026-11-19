@@ -158,12 +158,15 @@ export class Store {
     );
   }
 
-  setMandateStatus(id: string, status: "completed" | "revoked"): Mandate | undefined {
-    const m = this.getMandate(id);
+  setMandateStatus(id: string, status: "completed" | "revoked", now = new Date()): Mandate | undefined {
+    const m = this.getMandate(id, now);
     if (!m) return undefined;
-    if (m.status === "active") m.status = status;
+    if (m.status === "active") {
+      m.status = status;
+      m.closedAt = now.toISOString();
+    }
     this.db.prepare(`UPDATE mandates SET json = ? WHERE id = ?`).run(enc({ ...m, spent: 0n }), id);
-    return this.getMandate(id);
+    return this.getMandate(id, now);
   }
 
   // ------------------------------------------------------------------ breaker (P3)

@@ -82,6 +82,13 @@ describe("deriveReplay", () => {
     expect(r.mandates[0]).not.toHaveProperty("secretField");
   });
 
+  it("uses a recorded closedAt instead of estimating one", () => {
+    const at = t(5);
+    const r = deriveReplay([], [{ ...mandate("m1", "Picnic in 3 cities", 0), closedAt: at }], { budget: "5" }, notes, EXPLORER);
+    expect(r.takes[0]!.closedAt).toBe(Date.parse(at));
+    expect(r.mandates[0]).toMatchObject({ closedAt: at });
+  });
+
   it("sets the vendor's mode for each non-honest take and puts it back afterwards", () => {
     const r = recording();
     expect(r.vendor.filter((v) => v.mode !== "honest").map((v) => v.mode)).toEqual(["inject", "payee_swap", "drift", "payee_swap"]);

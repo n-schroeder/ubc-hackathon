@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { loadPolicy, loadRegistry, parsePolicy, toListing } from "../src/config.ts";
+import { loadPolicy, loadRegistry, parsePolicy, remapLocalPorts, toListing } from "../src/config.ts";
 
 describe("config", () => {
   it("loads policy.json with bigint amounts", () => {
@@ -23,6 +23,23 @@ describe("config", () => {
       expect(JSON.stringify(l)).not.toMatch(/0x[0-9a-fA-F]{40}/);
       expect(Object.keys(l).sort()).toEqual(["category", "description", "expectedPrice", "id"]);
     }
+  });
+  it("vendor URLs follow VENDOR_*_PORT, so moving a vendor doesn't break preflight", () => {
+    const url = (r: ReturnType<typeof loadRegistry>, id: string) => r.find((e) => e.id === id)!.baseUrl;
+    const r = loadRegistry(undefined, { "4021": "5021", "4022": 5022 });
+    expect(url(r, "weather-api")).toBe("http://localhost:5021/weather");
+    expect(url(r, "air-quality-api")).toBe("http://localhost:5021/air-quality");
+    expect(url(r, "premium-weather")).toBe("http://localhost:5022/weather");
+    const d = loadRegistry(undefined, {});
+    expect(url(d, "weather-api")).toBe("http://localhost:4021/weather");
+    expect(url(d, "premium-weather")).toBe("http://localhost:4022/weather");
+  });
+  it("only local URLs are re-pointed, and a bad port fails closed", () => {
+    const [e] = loadRegistry(undefined, {});
+    const remote = { ...e!, baseUrl: "https://api.example.com:4021/weather" };
+    expect(remapLocalPorts([remote], { "4021": 5021 })[0]!.baseUrl).toBe(remote.baseUrl);
+    expect(() => remapLocalPorts([e!], { "4021": "abc" })).toThrow(/Bad port/);
+    expect(() => remapLocalPorts([e!], { "4021": 70000 })).toThrow(/Bad port/);
   });
   it("rejects a malformed policy (fail closed at startup)", () => {
     expect(() => parsePolicy({ ...rawPolicy(), perCallMax: "ten cents" })).toThrow();

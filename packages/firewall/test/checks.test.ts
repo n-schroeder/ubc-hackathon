@@ -3,6 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { GATEWAY_WALLET_ADDRESS, USDC_ADDRESS, loadDemoAddresses, loadPolicy, parseUsdc, type IntentRequest, type Mandate, type Policy } from "@asf/shared";
 import { gatewayOption, makeRig } from "../src/testing.ts";
+import { describeProgress } from "../src/checks/velocity.ts";
 
 const attacker = loadDemoAddresses().attacker!;
 const policyWith = (patch: (p: Policy) => void) => { const p = loadPolicy(); patch(p); return p; };
@@ -70,6 +71,26 @@ describe("mandate (P4)", () => {
       expect(r.rule).toBe("mandate.none_active");
       expect(r.detail).toContain(end);
     }
+  });
+
+  it("records closedAt when a mandate is completed or revoked, and keeps the first one", () => {
+    for (const end of ["completed", "revoked"] as const) {
+      const { fw, m, clock } = setup();
+      expect(m.closedAt).toBeUndefined();
+      clock.advance(5);
+      const closed = fw.setMandateStatus(m.id, end)!;
+      expect(closed).toMatchObject({ status: end, closedAt: clock.now.toISOString() });
+      clock.advance(5);
+      expect(fw.setMandateStatus(m.id, "revoked")).toMatchObject({ status: end, closedAt: closed.closedAt });
+    }
+  });
+
+  it("doesn't set closedAt on an expired mandate", () => {
+    const { fw, m, clock } = setup();
+    clock.advance(fw.policy.mandateDefaults.ttlSeconds + 1);
+    const r = fw.setMandateStatus(m.id, "completed")!;
+    expect(r.status).toBe("expired");
+    expect(r.closedAt).toBeUndefined();
   });
 
   it("denies services outside the task's scope", async () => {
@@ -273,7 +294,27 @@ describe("velocity (P3)", () => {
     for (let p = 1; p <= limit; p++) expect((await call(`/forecast?city=Austin&page=${p}`, { taskProgress: "weather for Austin" })).outcome).toBe("approved");
     const r = await call(`/forecast?city=Austin&page=${limit + 1}`, { taskProgress: "weather for Austin" });
     expect(r).toMatchObject({ outcome: "denied", rule: "velocity.no_progress" });
+    expect(r.detail).toBe(`${limit + 1} paid calls in a row added nothing new to the task (still "weather for Austin"); limit ${limit}`);
     expect(fw.breaker().state).toBe("open");
+  });
+
+  it("no_progress detail shows the harness's resource count, not its digest; the ledger keeps the raw value", async () => {
+    const { fw, call } = setup();
+    const limit = fw.policy.velocity.noProgressLimit;
+    const progress = "1 resources/0b5100e6be6f";
+    for (let p = 1; p <= limit; p++) await call(`/forecast?city=Austin&page=${p}`, { taskProgress: progress });
+    const r = await call(`/forecast?city=Austin&page=${limit + 1}`, { taskProgress: progress });
+    expect(r.detail).toBe(`${limit + 1} paid calls in a row added nothing new to the task (still 1 resource bought); limit ${limit}`);
+    expect(r.detail).not.toContain("0b5100e6be6f");
+    expect(fw.breaker().detail).toBe(r.detail);
+    expect(fw.store.byIntentId(r.intentId)!.row.taskProgress).toBe(progress);
+  });
+
+  it("describeProgress", () => {
+    expect(describeProgress("")).toBe("no progress reported");
+    expect(describeProgress("1 resources/0b5100e6be6f")).toBe("still 1 resource bought");
+    expect(describeProgress("3 resources/abc123")).toBe("still 3 resources bought");
+    expect(describeProgress("0 cities done")).toBe('still "0 cities done"');
   });
 
   it("making progress keeps the no-progress rule quiet", async () => {
