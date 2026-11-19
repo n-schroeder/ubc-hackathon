@@ -148,6 +148,19 @@ describe("Watchdog: matching outflows against the ledger", () => {
     expect(deliver(12).verdict.status).toBe("alert");
   });
 
+  it("an in-flight claim expires after an hour on the firewall's clock", () => {
+    setup();
+    // Signed, then no decision was ever recorded (e.g. the process died mid-sign).
+    const claim = (intentId: string) => rig.fw.emit("signing", { intentId, to: friend(), amount: parseUsdc("0.10") });
+    const deliver = (n: number) => wd.ingest(streamDelivery(arcTransferLogs({ from: WALLET, to: friend(), amount: parseUsdc("0.10"), txHash: tx(n) })))[0]!;
+    claim("fresh");
+    rig.clock.advance(59 * 60);
+    expect(deliver(14).verdict).toEqual({ status: "matched_in_flight", intentId: "fresh" });
+    claim("stale");
+    rig.clock.advance(61 * 60);
+    expect(deliver(15).verdict).toMatchObject({ status: "alert", rule: "watchdog.unsigned_outflow" });
+  });
+
   it("re-deliveries (retries, reorg replays) are no-ops", () => {
     setup();
     const d = streamDelivery(arcTransferLogs({ from: WALLET, to: ATTACKER, amount: 1n, txHash: tx(13) }));
