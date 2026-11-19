@@ -609,9 +609,16 @@ function buildMandate(m) {
       h("div", { class: "bar" }, h("div", { class: pct >= 100 ? "over" : pct >= 80 ? "warn" : "", style: `width:${pct}%` }))),
     h("div", { class: "mandate-foot" },
       h("span", { class: `expiry${st === "active" && left < 60_000 ? " soon" : ""}`, dataset: { expires: m.expiresAt, active: String(st === "active") } },
-        st === "active" ? countdown(left) : `${st} · ${clock(m.expiresAt)}`),
+        st === "active" ? countdown(left) : closedLabel(m, st)),
       actions),
   );
+}
+
+// When a closed mandate ended: closedAt for completed/revoked, expiresAt for expired.
+// Older completed/revoked mandates have no closedAt, so show just the status.
+function closedLabel(m, st) {
+  const at = st === "expired" ? m.expiresAt : m.closedAt;
+  return at ? `${st} · ${clock(at)}` : st;
 }
 
 function tickMandates() {

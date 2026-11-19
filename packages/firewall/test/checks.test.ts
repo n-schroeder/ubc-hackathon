@@ -72,6 +72,26 @@ describe("mandate (P4)", () => {
     }
   });
 
+  it("records closedAt when a mandate is completed or revoked, and keeps the first one", () => {
+    for (const end of ["completed", "revoked"] as const) {
+      const { fw, m, clock } = setup();
+      expect(m.closedAt).toBeUndefined();
+      clock.advance(5);
+      const closed = fw.setMandateStatus(m.id, end)!;
+      expect(closed).toMatchObject({ status: end, closedAt: clock.now.toISOString() });
+      clock.advance(5);
+      expect(fw.setMandateStatus(m.id, "revoked")).toMatchObject({ status: end, closedAt: closed.closedAt });
+    }
+  });
+
+  it("doesn't set closedAt on an expired mandate", () => {
+    const { fw, m, clock } = setup();
+    clock.advance(fw.policy.mandateDefaults.ttlSeconds + 1);
+    const r = fw.setMandateStatus(m.id, "completed")!;
+    expect(r.status).toBe("expired");
+    expect(r.closedAt).toBeUndefined();
+  });
+
   it("denies services outside the task's scope", async () => {
     const { call } = setup({ mandate: { task: "weather only", allowedServices: ["weather-api"] } });
     expect((await call("/current?city=Austin", { service: "air-quality-api" })).rule).toBe("mandate.service_not_allowed");

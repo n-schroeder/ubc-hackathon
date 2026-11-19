@@ -186,7 +186,7 @@ export class Firewall extends EventEmitter<FirewallEvents> {
   }
 
   setMandateStatus(id: string, status: "completed" | "revoked"): Mandate | undefined {
-    const m = this.store.setMandateStatus(id, status);
+    const m = this.store.setMandateStatus(id, status, this.now());
     if (m) this.emit("mandate", m);
     return m;
   }

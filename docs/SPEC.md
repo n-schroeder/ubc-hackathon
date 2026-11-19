@@ -190,6 +190,7 @@ type Mandate = {
   allowedServices: string[];  // registry ids or categories
   expiresAt: string;
   status: "active" | "completed" | "expired" | "revoked";
+  closedAt?: string;          // set when completed or revoked
 };
 
 type RegistryEntry = {
