@@ -76,7 +76,7 @@ What live scene 5 does show is that the model sometimes catches a drain by itsel
 5. **Mandate card shows the wrong time.** The card shows `completed · 13:37:00`, which is the expiry time, 10 min in the future, not when it closed (`packages/firewall/public/app.js:547`; `Mandate` has no `completedAt`). Visible in `shots/after-settlement.png`. Follow-up card.
 6. **Live agent reasons are terse** ("weather", "Fetch next page") in the dashboard's agent line. The dry reasons read better. Cosmetic; no card.
 7. **A fresh run shows `Gateway <id>`, not explorer links.** Already known; the pre-warm step handles it (see Settlement).
-8. **Port-clash advice doesn't fully work.** The card text says to set `FIREWALL_PORT`/`VENDOR_*_PORT` on a clash, but `config/registry.json` hardcodes vendor URLs to 4021/4022. Moving the vendor ports breaks preflight. Small follow-up card.
+8. **Port-clash advice doesn't fully work.** The card text says to set `FIREWALL_PORT`/`VENDOR_*_PORT` on a clash, but `config/registry.json` hardcodes vendor URLs to 4021/4022. Moving the vendor ports breaks preflight. Small follow-up card. **Fixed in TASK-27:** `loadRegistry()` now re-points the local vendor URLs to `VENDOR_HONEST_PORT` / `VENDOR_SHADY_PORT`.
 
 ## Before recording
 

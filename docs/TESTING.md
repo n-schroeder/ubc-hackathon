@@ -194,5 +194,5 @@ npm run task -- --unsafe "<task>"    # the baseline: raw key, no firewall
 | `No .env in this directory` | Run `cp .env.example .env` in the repo root, and run the npm scripts from the repo root. |
 | `Missing TEST_API_KEY in .env` (or another variable) | That step needs level-3 credentials; see `.env.example`. Levels 1 and 2 never need them. |
 | `FIREWALL_ADMIN_TOKEN is not set in .env` | Add one to `.env` and restart `npm run demo`, so the demo and the scenes share the same token. |
-| `firewall, … did not come up within 30 s` / `EADDRINUSE` | Something else is on port 4020, 4021 or 4022. Stop it, or set `FIREWALL_PORT`, `VENDOR_HONEST_PORT` or `VENDOR_SHADY_PORT` in `.env`. |
+| `firewall, … did not come up within 30 s` / `EADDRINUSE` | Something else is on port 4020, 4021 or 4022. Stop it, or set `FIREWALL_PORT`, `VENDOR_HONEST_PORT` or `VENDOR_SHADY_PORT` in `.env`. The registry's vendor URLs (`localhost:4021` / `:4022` in `config/registry.json`) follow the vendor settings when loaded, so `config/registry.json` needs no edit. |
 | `spike:pay` deposit never shows up in Gateway | The wallet has no USDC for gas, or the faucet transfer hasn't landed. Check `npm run wallets:balances`. |
