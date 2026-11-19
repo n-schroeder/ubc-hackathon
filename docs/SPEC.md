@@ -5,6 +5,8 @@
 
 This document is the build plan. Anyone (human or agent) picking up work should be able to read it top to bottom and know what to build, in what order, and what "done" means. When the plan changes, update this file in the same commit as the change.
 
+> **Status (2026-11-18): the MVP is built.** Every F-box in §5 is checked, and the notes after each box and milestone say what was actually built. For how to run and verify the project, use the [README](../README.md) and [TESTING.md](TESTING.md); the README's "Architecture" and "The decision loop" sections describe the system as built, including parts this plan didn't foresee (the onchain watchdog, the static replay). Where this plan and the code differ, the code and the README are right.
+
 ---
 
 ## Contents
@@ -98,9 +100,9 @@ Every item here is a hard requirement. The final milestone (M10) checks each one
 ┌────────────────┐     │                                                              │
 │  LLM agent     │     │  ┌──────────┐   ┌────────────────── check pipeline ───────┐  │     ┌───────────────────┐
 │ (packages/     │ ──▶ │  │ intent   │──▶│ breaker → mandate → preflight → policy  │  │ ──▶ │ Signer            │
-│  agent)        │     │  │ API      │   │        → velocity → escalation          │  │     │ (Circle wallet,   │
-│                │ ◀── │  └──────────┘   └──────────────┬──────────────────────────┘  │     │  or local key     │
-│ no keys,       │     │        ▲                       │ escalate                    │     │  fallback)        │
+│  agent)        │     │  │ API      │   │        → velocity → escalation          │  │     │ (Circle Developer-│
+│                │ ◀── │  └──────────┘   └──────────────┬──────────────────────────┘  │     │  Controlled       │
+│ no keys,       │     │        ▲                       │ escalate                    │     │  Wallet)          │
 │ no secrets     │     │        │              ┌────────▼─────────┐                   │     └─────────┬─────────┘
 └────────────────┘     │        │              │ approval queue   │◀── human (dash)   │               │
                        │  ┌─────┴──────┐       └──────────────────┘                   │               ▼
@@ -119,38 +121,53 @@ Every item here is a hard requirement. The final milestone (M10) checks each one
 |---|---|---|
 | **Agent** | `packages/agent` | Claude-driven tool-use loop that does a real task (buying data from paid APIs). Holds **no** wallet credentials. Its only ways to spend are tools that call the firewall. |
 | **Firewall** | `packages/firewall` | HTTP service. Receives payment intents, runs the check pipeline, holds the signer, performs x402 handshakes on the agent's behalf, writes the ledger, serves the dashboard and approval API. |
-| **Signer** | inside firewall | One interface, two implementations: Circle Developer-Controlled Wallet (preferred) and a local testnet key (fallback). Only the firewall process can load it. |
+| **Signer** | inside firewall | A `Signer` interface implemented by a Circle Developer-Controlled Wallet (`CircleWalletSigner`). The planned local-key fallback wasn't needed (M0) and wasn't built. Only the firewall process can load it. |
 | **Ledger** | inside firewall | Append-only SQLite log of every intent, decision, reason, and settlement (tx hash + Arc explorer link). Also the source of truth for spend windows. |
 | **Vendors** | `packages/vendors` | An honest x402 API built on Circle's Gateway seller middleware, and a malicious x402 API with switchable attack modes. |
 | **Dashboard** | served by firewall | Decision log, approval queue, live spend-rate chart, breaker state, active mandates, vendor-mode switch (for the demo). |
 | **Red-team suite** | `packages/redteam` | Automated attack scenarios run as tests against the firewall. Guardrails are tested code, not prompt prose. |
 | **Shared** | `packages/shared` | Types (intent, decision, mandate, registry entry), USDC money helpers, config loading. |
+| **Onchain watchdog** *(added after this plan)* | inside firewall | A QuickNode Stream sends every USDC transfer out of the firewall wallet to a signed webhook; any outflow the firewall didn't sign trips the breaker. See the README's "Watchdog (QuickNode Streams)". |
 
 ### 3.2 Repository layout
+
+As built (the README's "Project layout" section says what is inside each package):
 
 ```
 /
 ├── README.md                 # submission README (decision loop, safety limits, Arc usage, setup)
-├── docs/SPEC.md              # this file
+├── docs/
+│   ├── SPEC.md               # this file
+│   ├── TESTING.md            # three ways to verify the project
+│   ├── devpost.md            # submission text
+│   ├── video-script.md       # demo video narration; video/stills.html holds its title cards
+│   ├── rehearsal.md          # dress rehearsal write-up; rehearsal/raw/ holds its logs and ledger
+│   └── hosting.md            # publishing the static replay
 ├── config/
 │   ├── policy.json           # caps, thresholds, breaker limits (one file, easy to show on video)
-│   └── registry.json         # known services: price band, pinned payTo, asset, network
-├── packages/
+│   ├── registry.json         # known services: price band, pinned payTo, asset, network
+│   └── quicknode/filter.js   # QuickNode Stream filter for the onchain watchdog
+├── packages/                 # imported as @asf/<name>; each has src/ and test/
 │   ├── shared/
-│   ├── firewall/
+│   ├── firewall/             # also public/ (the dashboard) and replay/ (the static replay player)
 │   ├── agent/
 │   ├── vendors/
 │   └── redteam/
-├── scripts/                  # spikes, wallet setup, Gateway deposit, demo runner
+├── scripts/                  # demo runner, task launcher, wallet setup, Gateway deposits, watchdog, replay build
+│   ├── lib/                  # code shared by the scripts
+│   ├── spikes/               # M0 spikes
+│   └── test/                 # tests for the scripts
 ├── .env.example              # every env var, no values
 └── package.json              # npm workspaces
 ```
 
-npm workspaces (Node 24 is already installed; no pnpm needed). Tests use Vitest.
+npm workspaces, no pnpm. Node 22.13+ (the ledger uses `node:sqlite`); developed on 24 (`.nvmrc`). Tests use Vitest.
 
 ### 3.3 Core data types
 
 All amounts are **`bigint` in USDC base units (6 decimals)**. Never floats. See [rule 10.2](#10-engineering-rules-for-whoever-builds-this).
+
+*The sketch below is the plan. The real definitions are in [`packages/shared/src/types.ts`](../packages/shared/src/types.ts) and differ in places: an intent carries a separate `idempotencyKey` and a `path` on the service (not a full URL), a decision can also be `failed` (passed the checks but the payment didn't go through), ledger rows (`LedgerRow`) carry the decision fields, and a mandate has `allowTransfers`.*
 
 ```ts
 type PaymentIntent = {
@@ -211,6 +228,8 @@ type RegistryEntry = {
 
 This is the heart of the project and goes into the README almost verbatim.
 
+*As built, the order is in the README's ["The decision loop"](../README.md#the-decision-loop): checks run in two stages (breaker and mandate before the vendor is contacted, the rest on its quote), and a task-budget check runs after policy. The plan below is kept as written.*
+
 ```
 agent tool call
    │
@@ -257,18 +276,19 @@ The agent process gets one env var related to payments: the firewall URL. Its ma
 
 ### 3.6 Signer
 
+As built ([`packages/firewall/src/signer.ts`](../packages/firewall/src/signer.ts)):
+
 ```ts
 interface Signer {
-  address(): Promise<`0x${string}`>;
-  signTypedData(data: Eip712TypedData): Promise<`0x${string}`>;  // x402 / EIP-3009 / Gateway authorizations
-  transfer(to: `0x${string}`, amount: bigint): Promise<{ txHash: string }>;
+  address: Address;
+  signTypedData(params: TypedDataParams): Promise<`0x${string}`>;  // x402 / EIP-3009 / Gateway authorizations
+  contractCall(contract: Address, abiFunctionSignature: string, abiParameters: unknown[]): Promise<{ txHash: string }>;  // Gateway deposit
+  transfer(to: Address, amount: bigint, idempotencyKey?: string): Promise<{ txHash: string }>;
 }
 ```
 
 - `CircleWalletSigner`: Circle Developer-Controlled Wallet; signs through Circle's API, so no key ever exists in our process. **Chosen.** Verified 2026-11-17 by `scripts/spikes/circle-sign-eip3009.ts`: Circle's `signTypedData` produced an EIP-3009 `TransferWithAuthorization` for Arc testnet USDC that recovers to the wallet address, and our EIP-712 domain matches the token's onchain `DOMAIN_SEPARATOR`. Gateway's batched-payment typed data verified 2026-11-17 by `scripts/spikes/gateway-nanopayment.ts` (`npm run spike:pay`): `BatchEvmScheme` from `@circle-fin/x402-batching/client` accepts `CircleWalletSigner` as its `BatchEvmSigner`, and a $0.001 payment settled through the testnet Gateway facilitator (signing ≈450 ms through Circle's API, paid request ≈300 ms).
-- `LocalKeySigner`: a raw testnet private key loaded only by the firewall (viem). **Fallback only**, kept in case Gateway's typed data turns out to need something Circle's API can't sign. The process separation (and the whole demo) still holds.
-
-The choice is one config value. The rest of the code never knows which is in use.
+- `LocalKeySigner`: a raw testnet private key loaded only by the firewall (viem). Planned as a fallback in case Gateway's typed data needed something Circle's API can't sign. **Not built:** M0 showed `CircleWalletSigner` handles everything, so there is no signer choice to configure.
 
 ### 3.7 Demo-only pieces
 
@@ -289,7 +309,7 @@ Feasibility ratings come from the research doc: 🟢 comfortable, 🟡 doable wi
 
 **Solution.** Separate *deciding* from *signing* (like an HSM or secure element). The agent has no credentials; every payment is an intent the firewall checks. Per-transaction cap, per-task budget, daily budget, recipient allowlist, human approval above a threshold, append-only decision log with explorer links, and a red-team suite that runs injection scenarios as automated tests.
 
-**Main risk.** Whether a Circle Developer-Controlled Wallet can sign EIP-712 / EIP-3009 authorizations via the API. Resolved in M0; fallback is `LocalKeySigner`.
+**Main risk.** Whether a Circle Developer-Controlled Wallet can sign EIP-712 / EIP-3009 authorizations via the API. Resolved in M0: the Circle wallet signs both, so the planned `LocalKeySigner` fallback was never needed.
 
 ### P2. x402 clients sign whatever the server asks for — 🟢🟡 MVP
 
@@ -383,7 +403,7 @@ Everything here ships in the final submission. The MVP is "done" when every box 
   - payment after task end → `mandate.none_active`
   - retry of the same intent → paid exactly once
   - honest happy path → approved and settled
-- [x] F29. Scenarios run without the LLM (they drive the firewall API directly), so they are fast, free and deterministic. A separate, optional `redteam:live` script runs a couple of them through the real agent.
+- [x] F29. Scenarios run without the LLM (they drive the firewall API directly), so they are fast, free and deterministic. A separate, optional `redteam:live` script runs a couple of them through the real agent. *(The optional `redteam:live` script was not built; there is no such command.)*
 
 ### Submission
 - [x] F30. README: what it is, architecture diagram, **decision loop**, **safety limits table**, how it uses Arc (with contract addresses used), setup instructions, demo instructions, what's next. *(TASK-7. The limits table is generated by `npm run docs:limits` and checked by `readme-limits.test.ts`.)*
@@ -594,7 +614,7 @@ Things only you can do or decide. Items 1–3 block M0, so they're needed first,
 
 - [x] **7. Price tolerance (P2).** Default: up to **+50%** over the pinned price; deny any price increase of more than **20%** over the last paid price for the same endpoint (drift).
 - [x] **8. Unknown services (P2).** Default: **deny** in the MVP; "ask a human, then pin" is stretch S2.1.
-- [x] **9. Breaker thresholds (P3).** Default: **$0.05/min**, **200 calls per service per task**, **5 identical requests within 60 s**, **10 paid calls with no task progress**. (The demo will temporarily use lower numbers so it trips on camera.)
+- [x] **9. Breaker thresholds (P3).** Default: **$0.05/min**, **200 calls per service per task**, **5 identical requests within 60 s**, **10 paid calls with no task progress**. (The plan was to lower these for the demo so the breaker trips on camera. That wasn't needed: scene 5 trips `velocity.no_progress` at the normal limits; see [`rehearsal.md`](rehearsal.md).)
 - [x] **10. P2 in the MVP.** It's rated 🟢🟡 in the research. In the MVP because the yellow is a single integration risk with a known fallback. Confirmed.
 - [x] **11. Demo task.** Default: "plan a weekend picnic in 3 cities using paid weather and air-quality APIs." Pick something else if you have a better story.
 - [ ] **12. Project name.** Using "Agent Spending Firewall" for now; rename any time before submission.
