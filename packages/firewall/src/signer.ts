@@ -70,7 +70,9 @@ export class CircleWalletSigner implements Signer {
     if (amount <= 0n) throw new Error("transfer amount must be positive");
     const res = await this.client.createTransaction({
       walletId: this.walletId,
+      // Circle needs the chain alongside a token address (only a tokenId stands alone): without it, HTTP 400.
       tokenAddress: USDC_ADDRESS,
+      blockchain: CIRCLE_BLOCKCHAIN,
       amount: [formatUsdc(amount)],
       destinationAddress: getAddress(to),
       fee: { type: "level", config: { feeLevel: "MEDIUM" } },
