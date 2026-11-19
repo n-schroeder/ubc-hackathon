@@ -13,9 +13,9 @@ import express from "express";
 import { resolve } from "node:path";
 import { REPO_ROOT, loadDemoAddresses, parseUsdc, usd, type Address, type IntentRequest, type Mandate } from "@asf/shared";
 import { SHADY_MODES, isShadyMode, type ShadyMode } from "@asf/vendors/shady";
-import { defaultPipeline } from "../packages/firewall/src/checks/index.ts";
-import { createApp } from "../packages/firewall/src/server.ts";
-import { gatewayOption, makeRig } from "../packages/firewall/src/testing.ts";
+import { defaultPipeline } from "@asf/firewall/checks/index";
+import { createApp } from "@asf/firewall/server";
+import { gatewayOption, makeRig } from "@asf/firewall/testing";
 
 const PORT = Number(process.env.FIREWALL_PORT ?? 4020);
 const VENDOR_PORT = Number(process.env.DEV_VENDOR_PORT ?? 4022);

@@ -1,6 +1,6 @@
 // Renders the README's safety-limits tables from config/policy.json and config/registry.json, so the
 // numbers in the README are the numbers the firewall enforces. `npm run docs:limits` rewrites the block
-// between the markers; a test (packages/shared/test/readme-limits.test.ts) fails if it is out of date.
+// between the markers; a test (scripts/test/readme-limits.test.ts) fails if it is out of date.
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { REPO_ROOT, short } from "@asf/shared";

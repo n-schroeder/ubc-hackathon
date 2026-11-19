@@ -13,7 +13,7 @@ import { BatchEvmScheme } from "@circle-fin/x402-batching/client";
 import {
   ARC_NETWORK, GATEWAY_API_TESTNET, GATEWAY_WALLET_ADDRESS, USDC_ADDRESS, formatUsdc, parseUsdc, loadRegistry, txUrl,
 } from "@asf/shared";
-import { CircleWalletSigner } from "../../packages/firewall/src/signer.ts";
+import { CircleWalletSigner } from "@asf/firewall/signer";
 
 const ARC_GATEWAY_DOMAIN = 26;
 const DEPOSIT = "5";
