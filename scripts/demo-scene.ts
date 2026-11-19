@@ -192,7 +192,7 @@ if (!dry && !loadAgentEnv().ANTHROPIC_API_KEY) {
   process.exit(1);
 }
 if (!optionalEnv("FIREWALL_ADMIN_TOKEN")) {
-  console.error("FIREWALL_ADMIN_TOKEN is not set in .env. Add one (any random string) and restart `npm run demo`, so this script can authenticate.");
+  console.error("FIREWALL_ADMIN_TOKEN is not set in .env. Start `npm run demo` once (it saves one to .env), or add any random string yourself and restart `npm run demo`, so this script can authenticate.");
   process.exit(1);
 }
 

@@ -121,7 +121,7 @@ This is the real demo with your own wallets. Payments are real testnet USDC on A
 cp .env.example .env
 ```
 
-Fill in `TEST_API_KEY`, `ENTITY_SECRET`, `ANTHROPIC_API_KEY` (unless you'll only use `--dry`), and **`FIREWALL_ADMIN_TOKEN`** (any random string, e.g. `openssl rand -hex 16`). The admin token is what lets `demo:scene` and `npm run task` create mandates. Without it, the demo makes up a random token, and the scenes can't authenticate.
+Fill in `TEST_API_KEY`, `ENTITY_SECRET` and `ANTHROPIC_API_KEY` (unless you'll only use `--dry`). Leave `FIREWALL_ADMIN_TOKEN` empty: the next step writes a random one, and it is what lets the dashboard, `demo:scene` and `npm run task` authenticate to the firewall.
 
 **2. Create the wallets.**
 
@@ -129,7 +129,7 @@ Fill in `TEST_API_KEY`, `ENTITY_SECRET`, `ANTHROPIC_API_KEY` (unless you'll only
 npm run wallets:setup
 ```
 
-This creates a Circle wallet set and one Arc-testnet wallet for the firewall, generates a throwaway local key for the unsafe baseline, and **appends** `CIRCLE_WALLET_SET_ID`, `CIRCLE_FIREWALL_WALLET_ID`, `CIRCLE_FIREWALL_WALLET_ADDRESS`, `BASELINE_PRIVATE_KEY` and `BASELINE_ADDRESS` to `.env`. It prints both addresses. It is safe to re-run: values already in `.env` are reused.
+This creates a Circle wallet set and one Arc-testnet wallet for the firewall, generates a throwaway local key for the unsafe baseline, and fills in `CIRCLE_WALLET_SET_ID`, `CIRCLE_FIREWALL_WALLET_ID`, `CIRCLE_FIREWALL_WALLET_ADDRESS`, `BASELINE_PRIVATE_KEY`, `BASELINE_ADDRESS` and (if empty) `FIREWALL_ADMIN_TOKEN` in `.env`, on their existing lines. It prints both addresses. It is safe to re-run: values already in `.env` are reused.
 
 **3. Fund both addresses** from https://faucet.circle.com (Arc Testnet). Then check:
 
@@ -193,6 +193,6 @@ npm run task -- --unsafe "<task>"    # the baseline: raw key, no firewall
 | `No such built-in module: node:sqlite` | Node older than 22.13. Upgrade (`nvm use` picks 24 from `.nvmrc`). |
 | `No .env in this directory` | Run `cp .env.example .env` in the repo root, and run the npm scripts from the repo root. |
 | `Missing TEST_API_KEY in .env` (or another variable) | That step needs level-3 credentials; see `.env.example`. Levels 1 and 2 never need them. |
-| `FIREWALL_ADMIN_TOKEN is not set in .env` | Add one to `.env` and restart `npm run demo`, so the demo and the scenes share the same token. |
+| `FIREWALL_ADMIN_TOKEN is not set in .env` | `npm run wallets:setup` and `npm run demo` both write one when it's empty; if you skipped both, add any random string to `.env` and restart `npm run demo`, so the demo and the scenes share the same token. |
 | `firewall, … did not come up within 30 s` / `EADDRINUSE` | Something else is on port 4020, 4021 or 4022. Stop it, or set `FIREWALL_PORT`, `VENDOR_HONEST_PORT` or `VENDOR_SHADY_PORT` in `.env`. The registry's vendor URLs (`localhost:4021` / `:4022` in `config/registry.json`) follow the vendor settings when loaded, so `config/registry.json` needs no edit. |
 | `spike:pay` deposit never shows up in Gateway | The wallet has no USDC for gas, or the faucet transfer hasn't landed. Check `npm run wallets:balances`. |

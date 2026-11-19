@@ -367,15 +367,15 @@ Fill in `.env`:
 |---|---|---|
 | `TEST_API_KEY` | Circle developer console → API key (testnet), the full `TEST_API_KEY:<id>:<secret>` string | firewall only |
 | `ENTITY_SECRET` | Circle developer console → entity secret setup for Developer-Controlled Wallets (generate it, then register its ciphertext with Circle before running `wallets:setup`) | firewall only |
-| `FIREWALL_ADMIN_TOKEN` | any random string, e.g. `openssl rand -hex 16`. **Required** for `demo:scene` and `npm run task`: the launcher and dashboard need the same token the firewall uses | firewall, launcher, dashboard |
+| `FIREWALL_ADMIN_TOKEN` | leave empty: `npm run wallets:setup` (or the first `npm run demo`) writes a random one. Or set any random string. `demo:scene`, `npm run task` and the dashboard need the same token the firewall uses | firewall, launcher, dashboard |
 | `ANTHROPIC_API_KEY` | Anthropic console (a few dollars of credit is plenty; a run costs about $0.03). Optional if you only use `--dry`. | agent only |
 
-`npm run wallets:setup` (the next step) fills in the wallet variables. Everything else in `.env.example` (ports, the ledger path, agent model settings, the watchdog's QuickNode/tunnel settings, the shady vendor's starting mode) is optional, and the comments there give each default.
+`npm run wallets:setup` (the next step) fills in the wallet variables and, if it is empty, `FIREWALL_ADMIN_TOKEN`. Everything else in `.env.example` (ports, the ledger path, agent model settings, the watchdog's QuickNode/tunnel settings, the shady vendor's starting mode) is optional, and the comments there give each default.
 
 Then create the wallets:
 
 ```bash
-npm run wallets:setup      # creates the firewall's Circle wallet and the baseline's throwaway key; writes them to .env
+npm run wallets:setup      # creates the firewall's Circle wallet and the baseline's throwaway key; writes them (and an admin token) to .env
 npm run wallets:balances   # shows both addresses and their USDC balances
 ```
 

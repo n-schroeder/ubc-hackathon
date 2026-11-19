@@ -546,7 +546,7 @@ How it was built:
 - **Scripts:** `npm run firewall`, `npm run vendors`, `npm run task -- "<task>" [--budget 0.50] [--ttl 600] [--allow-transfers] [--unsafe]`, `npm run agent -- --mandate <id>`.
 - **Baseline parity:** the unsafe backend returns the same tool-output shape as the firewalled one. An earlier version also returned the vendor's `payTo`, and the model refused the fee because the attacker address differed from it. For a fair side-by-side, the only difference should be who decides.
 - **The model is not deterministic.** In 5 live injection runs, Sonnet paid or tried to pay in 2 and declined in 3, depending on the fixture and on luck. The firewall's result doesn't depend on that, but the video needs a take where the agent goes for it, so plan to record a few.
-- **Admin token:** set `FIREWALL_ADMIN_TOKEN` in `.env` (or the environment of both `npm run firewall` and `npm run task`). Without it the firewall makes a random one at each start, and the launcher and dashboard can't authenticate.
+- **Admin token:** set `FIREWALL_ADMIN_TOKEN` in `.env` (or the environment of both `npm run firewall` and `npm run task`). Without it the firewall makes a random one at each start, and the launcher and dashboard can't authenticate. `npm run wallets:setup` and `npm run demo` write a random one to `.env` when it is empty, so the default setup never hits this.
 
 ### M8. Red-team suite
 
