@@ -146,8 +146,7 @@ Do this in order, about 30 minutes before recording.
 - [ ] `.env` has `FIREWALL_ADMIN_TOKEN` and `ANTHROPIC_API_KEY`, plus the Circle and baseline values from `wallets:setup`.
 
 **Funds and credit**
-- [ ] `npm run wallets:balances`. Firewall wallet: some onchain USDC for gas. Baseline wallet: at least `0.05 × (unsafe takes) + gas`, say 0.5 USDC.
-- [ ] Gateway balances (nanopayments come out of these, not the wallet). Use the `curl … /v1/balances` command in `docs/TESTING.md` § "Gateway balances", with the firewall address and the baseline address (`BASELINE_ADDRESS` in `.env`) as depositors. Firewall ≥ 0.5 USDC; baseline ≥ 0.1. Top up with `npm run spike:pay` / `npm run baseline:deposit` if low.
+- [ ] `npm run wallets:balances` prints both wallets' USDC and their Gateway balances. Wallets: firewall needs some USDC for gas; baseline at least `0.05 × (unsafe takes) + gas`, say 0.5 USDC. Gateway (nanopayments come out of this, not the wallet): firewall ≥ 0.5 USDC, baseline ≥ 0.1. Top up Gateway with `npm run gateway:deposit` / `npm run baseline:deposit` if low.
 - [ ] Anthropic console: at least $1 of credit.
 
 **Start and pre-warm (T–15 min)**

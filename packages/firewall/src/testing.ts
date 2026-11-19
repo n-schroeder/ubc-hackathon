@@ -23,6 +23,7 @@ export class FakePayments implements Payments {
   paid: { url: string; option: PaymentOption }[] = [];
   transfers: { to: Address; amount: bigint }[] = [];
   vendorStatus = 200;
+  vendorSettled = true;
   failTransfers = false;
 
   /** Make every URL under `prefix` quote `option` (the vendor answers 402). */
@@ -41,7 +42,7 @@ export class FakePayments implements Payments {
   }
   async payQuote(url: string, _r: PaymentRequired, option: PaymentOption): Promise<PaidResult> {
     this.paid.push({ url, option });
-    return { status: this.vendorStatus, data: { ok: true, url }, gatewayTransferId: `fake-${this.paid.length}`, settled: true };
+    return { status: this.vendorStatus, data: { ok: true, url }, gatewayTransferId: `fake-${this.paid.length}`, settled: this.vendorSettled };
   }
   async transfer(to: Address, amount: bigint) {
     if (this.failTransfers) throw new Error("transfer reverted");

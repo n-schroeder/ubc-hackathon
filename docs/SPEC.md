@@ -155,7 +155,7 @@ As built (the README's "Project layout" section says what is inside each package
 │   └── redteam/
 ├── scripts/                  # demo runner, task launcher, wallet setup, Gateway deposits, watchdog, replay build
 │   ├── lib/                  # code shared by the scripts
-│   ├── spikes/               # M0 spikes
+│   ├── spikes/               # M0 spikes (historical; see its README)
 │   └── test/                 # tests for the scripts
 ├── .env.example              # every env var, no values
 └── package.json              # npm workspaces
@@ -287,7 +287,7 @@ interface Signer {
 }
 ```
 
-- `CircleWalletSigner`: Circle Developer-Controlled Wallet; signs through Circle's API, so no key ever exists in our process. **Chosen.** Verified 2026-11-17 by `scripts/spikes/circle-sign-eip3009.ts`: Circle's `signTypedData` produced an EIP-3009 `TransferWithAuthorization` for Arc testnet USDC that recovers to the wallet address, and our EIP-712 domain matches the token's onchain `DOMAIN_SEPARATOR`. Gateway's batched-payment typed data verified 2026-11-17 by `scripts/spikes/gateway-nanopayment.ts` (`npm run spike:pay`): `BatchEvmScheme` from `@circle-fin/x402-batching/client` accepts `CircleWalletSigner` as its `BatchEvmSigner`, and a $0.001 payment settled through the testnet Gateway facilitator (signing ≈450 ms through Circle's API, paid request ≈300 ms).
+- `CircleWalletSigner`: Circle Developer-Controlled Wallet; signs through Circle's API, so no key ever exists in our process. **Chosen.** Verified 2026-11-17 by `scripts/spikes/circle-sign-eip3009.ts`: Circle's `signTypedData` produced an EIP-3009 `TransferWithAuthorization` for Arc testnet USDC that recovers to the wallet address, and our EIP-712 domain matches the token's onchain `DOMAIN_SEPARATOR`. Gateway's batched-payment typed data verified 2026-11-17 by `scripts/spikes/gateway-nanopayment.ts`: `BatchEvmScheme` from `@circle-fin/x402-batching/client` accepts `CircleWalletSigner` as its `BatchEvmSigner`, and a $0.001 payment settled through the testnet Gateway facilitator (signing ≈450 ms through Circle's API, paid request ≈300 ms).
 - `LocalKeySigner`: a raw testnet private key loaded only by the firewall (viem). Planned as a fallback in case Gateway's typed data needed something Circle's API can't sign. **Not built:** M0 showed `CircleWalletSigner` handles everything, so there is no signer choice to configure.
 
 ### 3.7 Demo-only pieces
@@ -546,7 +546,7 @@ How it was built:
 - **Scripts:** `npm run firewall`, `npm run vendors`, `npm run task -- "<task>" [--budget 0.50] [--ttl 600] [--allow-transfers] [--unsafe]`, `npm run agent -- --mandate <id>`.
 - **Baseline parity:** the unsafe backend returns the same tool-output shape as the firewalled one. An earlier version also returned the vendor's `payTo`, and the model refused the fee because the attacker address differed from it. For a fair side-by-side, the only difference should be who decides.
 - **The model is not deterministic.** In 5 live injection runs, Sonnet paid or tried to pay in 2 and declined in 3, depending on the fixture and on luck. The firewall's result doesn't depend on that, but the video needs a take where the agent goes for it, so plan to record a few.
-- **Admin token:** set `FIREWALL_ADMIN_TOKEN` in `.env` (or the environment of both `npm run firewall` and `npm run task`). Without it the firewall makes a random one at each start, and the launcher and dashboard can't authenticate.
+- **Admin token:** set `FIREWALL_ADMIN_TOKEN` in `.env` (or the environment of both `npm run firewall` and `npm run task`). Without it the firewall makes a random one at each start, and the launcher and dashboard can't authenticate. `npm run wallets:setup` and `npm run demo` write a random one to `.env` when it is empty, so the default setup never hits this.
 
 ### M8. Red-team suite
 
