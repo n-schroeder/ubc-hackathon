@@ -24,7 +24,7 @@ Noah Schroeder (solo), building with Claude Code.
 
 - **Main track:** Agentic Payments and AI
 - **Chain award:** Best use of Arc
-- **Bounties:** QuickNode Streams. The onchain watchdog (TASK-21) is built; its live Stream still needs setting up (see below).
+- **Bounties:** QuickNode Streams. The onchain watchdog runs on a live Stream and has caught a real unsigned transfer (see below).
 
 All prizes stack except the two chain awards, and **every prize, bounties included, requires being at the closing ceremony in person on Sat Nov 21.** On the form you pick the main track, the chain award (Solana, Arc or None) and each bounty, then opt in to the matching prizes.
 
@@ -36,7 +36,7 @@ All prizes stack except the two chain awards, and **every prize, bounties includ
 |---|---|---|---|
 | Official UBC 2026 Hackathon Winner ($2,500 / $1,000 / $500) | Automatic | Yes | Nothing to select |
 | Participation prize (perks) | Automatic, at the judges' discretion | Yes, once the "What to Submit" items are done | Finish the checklist below |
-| QuickNode Streams ($500) | Opt in on Devpost | Yes. A Stream on Arc testnet feeds the onchain watchdog | Enter, once the live Stream is set up |
+| QuickNode Streams ($500) | Opt in on Devpost | Yes. A Stream on Arc testnet feeds the onchain watchdog | Enter |
 | ElevenLabs (3 months of Scale) | Opt in on Devpost | No. Voice isn't part of the product | Skip |
 | Gemini Prediction Markets ($2,500 / $1,000 / $500) | Opt in on Devpost | No. Gemini's API has nothing to do with agent payments on Arc | Skip |
 | Grok Bot (keyboard + swag) | Opt in on Devpost | No, and awkward: the pitch opens with the Grok/Bankr drain | Skip |
@@ -57,14 +57,14 @@ All prizes stack except the two chain awards, and **every prize, bounties includ
 **QuickNode Streams ($500).** Requirements, and whether they're met:
 
 - [x] Use QuickNode Streams as a core data source. The onchain watchdog's only input is a Stream: every USDC transfer out of the firewall wallet on Arc testnet, checked against the ledger.
-- [ ] Configure at least one Stream with a filter and a destination, such as a webhook. The filter ([`config/quicknode/filter.js`](../config/quicknode/filter.js)), the signed webhook and `npm run watchdog:stream` are built and tested with simulated deliveries. **Noah: create the live Stream and tunnel** (README "Watchdog (QuickNode Streams)", Running it).
+- [x] Configure at least one Stream with a filter and a destination, such as a webhook. A live Stream on Arc testnet runs the filter ([`config/quicknode/filter.js`](../config/quicknode/filter.js)) and posts to the firewall's signed webhook. It delivered a real rogue transfer ([tx `0x0819…031f`](https://explorer.testnet.arc.io/tx/0x08199242cb0315d9159d0517e81ebf9fffabd74375f0395122cd67faf897031f)), and the watchdog raised `watchdog.unsigned_outflow` under two seconds after the block (README "Watchdog (QuickNode Streams)", Live run).
 - [x] Explain in the README how the Stream is configured (network, dataset, filter logic, destination) and why: README "Watchdog (QuickNode Streams)".
 - [x] Also be submitted to a main track and meet its requirements.
 
-What it does: a Stream on Arc testnet (logs dataset) filters for USDC `Transfer` logs from the firewall's wallet and posts them, HMAC-signed, to a webhook on the firewall's machine. The watchdog matches each outflow against the ledger. Anything the firewall didn't sign raises a dashboard alert and trips the circuit breaker. That catches spending that goes around the firewall, such as leaked Circle credentials, which the pre-signing checks can't see. Still to do:
+What it does: a Stream on Arc testnet (logs dataset) filters for USDC `Transfer` logs from the firewall's wallet and posts them, HMAC-signed, to a webhook on the firewall's machine. The watchdog matches each outflow against the ledger. Anything the firewall didn't sign raises a dashboard alert and trips the circuit breaker. That catches spending that goes around the firewall, such as leaked Circle credentials, which the pre-signing checks can't see. Live evidence: a 0.01 USDC transfer sent through Circle's API directly, bypassing the firewall ([tx `0x0819…031f`](https://explorer.testnet.arc.io/tx/0x08199242cb0315d9159d0517e81ebf9fffabd74375f0395122cd67faf897031f)), was delivered by the Stream and alerted under two seconds after its block. Still to do:
 
-- **Noah:** set up the live Stream and tunnel, then opt in to the QuickNode Streams bounty on Devpost.
-- **Video:** show an unsigned transfer raising the alert. Optional, but it's the evidence the sponsor judges look for. `npm run watchdog:rogue -- --yes` makes one (a real 0.01 USDC transfer that bypasses the firewall).
+- **Noah:** opt in to the QuickNode Streams bounty on Devpost.
+- **Video:** show an unsigned transfer raising the alert; it's the evidence the sponsor judges look for. `npm run watchdog:rogue -- --yes` makes another one (a real 0.01 USDC transfer that bypasses the firewall). The Stream and the cloudflared tunnel must both be running, and the Stream's URL must match the current tunnel URL.
 
 **ElevenLabs.** It requires ElevenLabs as a core feature, not an add-on, plus audio of it in the demo video and a README section. Voice approvals for held payments would be an add-on. Skip.
 
