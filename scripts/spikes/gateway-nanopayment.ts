@@ -1,5 +1,6 @@
-// M0 spike 3: one real Circle Gateway nanopayment on Arc testnet, signed by the Circle
-// developer-controlled wallet (no private key in this process).
+// M0 spike 3 (historical; the deposit step now lives in scripts/gateway-deposit.ts): one real Circle
+// Gateway nanopayment on Arc testnet, signed by the Circle developer-controlled wallet (no private key
+// in this process).
 //
 // 1. Read the wallet's Gateway balance; if it is under 1 USDC, approve + deposit DEPOSIT USDC
 //    into the GatewayWallet contract through Circle contract-execution transactions.
@@ -14,20 +15,9 @@ import {
   ARC_NETWORK, GATEWAY_API_TESTNET, GATEWAY_WALLET_ADDRESS, USDC_ADDRESS, formatUsdc, parseUsdc, loadRegistry, txUrl,
 } from "@asf/shared";
 import { CircleWalletSigner } from "@asf/firewall/signer";
+import { gatewayBalance } from "../lib/gateway.ts";
 
-const ARC_GATEWAY_DOMAIN = 26;
 const DEPOSIT = "5";
-
-async function gatewayBalance(depositor: string): Promise<bigint> {
-  const r = await fetch(`${GATEWAY_API_TESTNET}/balances`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ token: "USDC", sources: [{ depositor, domain: ARC_GATEWAY_DOMAIN }] }),
-  });
-  const j: any = await r.json();
-  if (!r.ok) throw new Error(`balances: ${r.status} ${JSON.stringify(j)}`);
-  return parseUsdc(j.balances?.[0]?.balance ?? "0");
-}
 
 const b64json = (s: string) => JSON.parse(Buffer.from(s, "base64").toString("utf8"));
 

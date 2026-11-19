@@ -1,22 +1,21 @@
-// Prints the USDC balance of the project's wallets on Arc testnet.
-import { existsSync, realpathSync } from "node:fs";
-import { createPublicClient, formatUnits, http, parseAbi } from "viem";
-import { arcTestnet } from "viem/chains";
-import { config } from "dotenv";
+// Prints each project wallet's USDC on Arc testnet and its balance inside Circle Gateway (read-only).
+// Nanopayments are paid from the Gateway balance; the wallet's own USDC pays gas and funds deposits.
+import { createPublicClient, http, parseAbi } from "viem";
+import { ARC_TESTNET, USDC_ADDRESS, addressUrl, formatUsdc, optionalEnv } from "@asf/shared";
+import { gatewayBalance } from "./lib/gateway.ts";
 
-if (!existsSync(".env")) {
-  console.error("No .env in this directory. Run `cp .env.example .env` in the repo root and fill in TEST_API_KEY and ENTITY_SECRET first (see docs/TESTING.md).");
-  process.exit(1);
-}
-config({ path: realpathSync(".env"), quiet: true });
-const USDC = "0x3600000000000000000000000000000000000000" as const;
-const pc = createPublicClient({ chain: arcTestnet, transport: http() });
-const wallets = { firewall: process.env.CIRCLE_FIREWALL_WALLET_ADDRESS, baseline: process.env.BASELINE_ADDRESS };
+const pc = createPublicClient({ chain: ARC_TESTNET, transport: http() });
+const wallets = { firewall: optionalEnv("CIRCLE_FIREWALL_WALLET_ADDRESS"), baseline: optionalEnv("BASELINE_ADDRESS") };
 
-for (const [name, addr] of Object.entries(wallets)) {
-  if (!addr) { console.log(`${name}: not set up (run npm run wallets:setup)`); continue; }
+for (const [name, addr] of Object.entries(wallets) as [keyof typeof wallets, string | undefined][]) {
+  if (!addr) { console.log(`${name.padEnd(9)} not set up (run npm run wallets:setup)`); continue; }
   const a = addr as `0x${string}`;
-  // ERC-20 view uses 6 decimals; the native gas balance is the same USDC at 18 decimals.
-  const erc20 = await pc.readContract({ address: USDC, abi: parseAbi(["function balanceOf(address) view returns (uint256)"]), functionName: "balanceOf", args: [a] });
-  console.log(`${name.padEnd(9)} ${a}  ${formatUnits(erc20, 6)} USDC  ${arcTestnet.blockExplorers.default.url}/address/${a}`);
+  // The ERC-20 view uses 6 decimals; Arc's native gas balance is the same USDC at 18 decimals, so read the ERC-20.
+  const [wallet, gateway] = await Promise.all([
+    pc.readContract({ address: USDC_ADDRESS, abi: parseAbi(["function balanceOf(address) view returns (uint256)"]), functionName: "balanceOf", args: [a] }),
+    gatewayBalance(a).catch((e: Error) => e),
+  ]);
+  const gw = gateway instanceof Error ? `? (${gateway.message})` : formatUsdc(gateway);
+  console.log(`${name.padEnd(9)} ${a}  wallet ${formatUsdc(wallet)} USDC  gateway ${gw} USDC  ${addressUrl(a)}`);
 }
+console.log("\nTop up Gateway with npm run gateway:deposit (firewall) or npm run baseline:deposit (baseline).");
