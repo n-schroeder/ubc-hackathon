@@ -138,7 +138,7 @@ export class Watchdog extends EventEmitter<{ outflow: [WatchdogEvent] }> {
   /** Transfers the firewall has decided to sign but may not have recorded yet: intentId → recipient/amount. */
   private inFlight = new Map<string, { to: string; amount: bigint; at: number }>();
   private onSigning = (s: { intentId: string; to: Address; amount: bigint }) =>
-    this.inFlight.set(s.intentId, { to: lower(s.to), amount: s.amount, at: Date.now() });
+    this.inFlight.set(s.intentId, { to: lower(s.to), amount: s.amount, at: this.fw.clock().getTime() });
   // Once the decision is recorded, the ledger row (tx hash, or a "failed" row) is what outflows match.
   private onDecision = (r: LedgerRow) => {
     if (r.outcome !== "pending_human") this.inFlight.delete(r.intentId);
@@ -194,7 +194,7 @@ export class Watchdog extends EventEmitter<{ outflow: [WatchdogEvent] }> {
 
     // Signed but not yet recorded, or recorded as failed (e.g. a confirmation timeout after broadcast).
     const claimed = new Set(this.fw.store.matchedIntentIds());
-    const now = Date.now();
+    const now = this.fw.clock().getTime();
     for (const [id, f] of this.inFlight) {
       if (now - f.at > IN_FLIGHT_MS) { this.inFlight.delete(id); continue; }
       if (f.to === to && f.amount === o.amount && !claimed.has(id)) {
