@@ -367,16 +367,16 @@ Fill in `.env`:
 |---|---|---|
 | `TEST_API_KEY` | Circle developer console → API key (testnet), the full `TEST_API_KEY:<id>:<secret>` string | firewall only |
 | `ENTITY_SECRET` | Circle developer console → entity secret setup for Developer-Controlled Wallets (generate it, then register its ciphertext with Circle before running `wallets:setup`) | firewall only |
-| `FIREWALL_ADMIN_TOKEN` | any random string, e.g. `openssl rand -hex 16`. **Required** for `demo:scene` and `npm run task`: the launcher and dashboard need the same token the firewall uses | firewall, launcher, dashboard |
+| `FIREWALL_ADMIN_TOKEN` | leave empty: `npm run wallets:setup` (or the first `npm run demo`) writes a random one. Or set any random string. `demo:scene`, `npm run task` and the dashboard need the same token the firewall uses | firewall, launcher, dashboard |
 | `ANTHROPIC_API_KEY` | Anthropic console (a few dollars of credit is plenty; a run costs about $0.03). Optional if you only use `--dry`. | agent only |
 
-`npm run wallets:setup` (the next step) fills in the wallet variables. Everything else in `.env.example` (ports, the ledger path, agent model settings, the watchdog's QuickNode/tunnel settings, the shady vendor's starting mode) is optional, and the comments there give each default.
+`npm run wallets:setup` (the next step) fills in the wallet variables and, if it is empty, `FIREWALL_ADMIN_TOKEN`. Everything else in `.env.example` (ports, the ledger path, agent model settings, the watchdog's QuickNode/tunnel settings, the shady vendor's starting mode) is optional, and the comments there give each default.
 
 Then create the wallets:
 
 ```bash
-npm run wallets:setup      # creates the firewall's Circle wallet and the baseline's throwaway key; writes them to .env
-npm run wallets:balances   # shows both addresses and their USDC balances
+npm run wallets:setup      # creates the firewall's Circle wallet and the baseline's throwaway key; writes them (and an admin token) to .env
+npm run wallets:balances   # shows both addresses with their wallet and Gateway USDC balances
 ```
 
 ### 3. Fund the wallets
@@ -385,9 +385,9 @@ npm run wallets:balances   # shows both addresses and their USDC balances
 2. Deposit into Circle Gateway, which nanopayments are paid from:
 
 ```bash
-npm run spike:pay          # firewall wallet: deposits 5 USDC into GatewayWallet if its Gateway balance is under 1,
-                           # then makes one real $0.001 nanopayment end to end as a check
+npm run gateway:deposit    # firewall wallet: deposits 5 USDC into GatewayWallet if its Gateway balance is under 1
 npm run baseline:deposit   # unsafe baseline: deposits 2 USDC into Gateway (only needed for demo scene 3)
+npm run wallets:balances   # check: both Gateway balances should now show the deposit
 ```
 
 ---
@@ -434,7 +434,6 @@ Useful scripts:
 | `npm run check:vendors` | Print the 402 quote each shady mode returns, then pay the honest vendor once per endpoint through the firewall ($0.003; `-- --quotes-only` to skip paying) |
 | `npm run build:site` | Build `site/`, a static read-only replay of a recorded run's dashboard (scene by scene, no wallet or keys behind it; see [`docs/hosting.md`](docs/hosting.md)) |
 | `npm run watchdog:stream` / `watchdog:simulate` / `watchdog:rogue` / `tunnel` | Set up the QuickNode Stream for the onchain watchdog, send it a simulated signed delivery, send a real rogue transfer, or open the webhook tunnel (see [Watchdog](#watchdog-quicknode-streams)) |
-| `npm run spike:sign` / `spike:usdc` | The M0 spikes that proved Circle's wallet can sign Arc USDC authorizations and checked the token's EIP-712 domain. `spike:pay` (above) is the one still used for setup |
 | `npm run docs:limits` | Regenerate this README's safety-limits tables from `config/` (`-- --check` to verify) |
 | `npm run typecheck` | TypeScript check of all packages and scripts |
 
@@ -466,7 +465,7 @@ packages/
 scripts/                 the demo launcher and scene runner, task launcher, wallet setup and deposits,
                          watchdog and tunnel helpers, replay build, README limits generator
   lib/                   code shared by those scripts
-  spikes/                the M0 experiments (spike:pay is still the Gateway deposit step)
+  spikes/                the M0 experiments, kept as evidence for docs/SPEC.md (not used by setup or the demo)
   test/                  tests for the scripts (README limits drift, replay build)
 docs/
   TESTING.md             how to verify the project: no keys, read the chain, or a full live run

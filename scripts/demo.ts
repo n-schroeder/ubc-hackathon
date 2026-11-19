@@ -7,8 +7,8 @@
 // Stage the §8 scenes from a second terminal with `npm run demo:scene -- <n>`.
 //
 // Credentials stay where they were: the firewall loads .env itself, as `npm run firewall` does. This script
-// reads .env only for the admin token and ports, and the vendors (stand-ins for third parties) get only their
-// own VENDOR_* settings, never the wallet credentials.
+// reads .env only for the admin token and ports (and writes a generated admin token to it if it has none), and
+// the vendors (stand-ins for third parties) get only their own VENDOR_* settings, never the wallet credentials.
 import { spawn, type ChildProcess } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { existsSync, readFileSync, realpathSync } from "node:fs";
@@ -17,6 +17,7 @@ import { createInterface } from "node:readline";
 import { parse } from "dotenv";
 import { REPO_ROOT } from "@asf/shared";
 import { FORBIDDEN_ENV } from "@asf/agent/env";
+import { updateEnvFile } from "./lib/env-file.ts";
 
 const envPath = resolve(REPO_ROOT, ".env");
 const file = existsSync(envPath) ? parse(readFileSync(realpathSync(envPath))) : {};
@@ -26,9 +27,17 @@ const firewallPort = Number(setting("FIREWALL_PORT", "4020"));
 const shadyPort = Number(setting("VENDOR_SHADY_PORT", "4022"));
 const honestPort = Number(setting("VENDOR_HONEST_PORT", "4021"));
 
+// No admin token yet: make one up and save it to .env, so `demo:scene` and `npm run task` (which read .env)
+// use the same one. With no .env at all, it lasts for this run only and those two can't authenticate.
 let adminToken = setting("FIREWALL_ADMIN_TOKEN");
-const tokenGenerated = !adminToken;
-adminToken ??= randomBytes(16).toString("hex");
+let tokenNote: "saved" | "this run only" | undefined;
+if (!adminToken) {
+  adminToken = randomBytes(16).toString("hex");
+  if (existsSync(envPath)) {
+    updateEnvFile(envPath, { FIREWALL_ADMIN_TOKEN: adminToken }, "added by scripts/demo.ts");
+    tokenNote = "saved";
+  } else tokenNote = "this run only";
+}
 
 const color = process.stdout.isTTY && !process.env.NO_COLOR;
 const paint = (code: number, s: string) => (color ? `\x1b[${code}m${s}\x1b[0m` : s);
@@ -128,8 +137,10 @@ const lines = [
   `             2 happy path · 3 prompt injection · 4 lying vendor · 5 runaway loop · 6 task ended`,
   `  stop       Ctrl-C`,
 ];
-if (tokenGenerated) {
-  lines.push("", paint(33, "FIREWALL_ADMIN_TOKEN is not set, so this run uses a random one. demo:scene and npm run task need"),
-    paint(33, "the same token: add FIREWALL_ADMIN_TOKEN to .env (any random string) and restart."));
+if (tokenNote === "saved") {
+  lines.push("", dim("FIREWALL_ADMIN_TOKEN was empty, so a random one was generated and saved to .env."));
+} else if (tokenNote === "this run only") {
+  lines.push("", paint(33, "There is no .env, so this run uses a random admin token. demo:scene and npm run task need the same"),
+    paint(33, `token: run \`cp .env.example .env\`, set FIREWALL_ADMIN_TOKEN=${adminToken} in it, and restart.`));
 }
 for (const l of lines) say(l);

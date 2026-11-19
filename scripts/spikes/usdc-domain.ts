@@ -1,7 +1,8 @@
 // Reads Arc testnet USDC's ERC-20 metadata and EIP-712 domain from the chain.
 import { createPublicClient, http, parseAbi } from "viem";
 import { arcTestnet } from "viem/chains";
-const USDC = (process.argv[2] ?? "0x3600000000000000000000000000000000000000") as `0x${string}`;
+import { USDC_ADDRESS } from "@asf/shared";
+const USDC = (process.argv[2] ?? USDC_ADDRESS) as `0x${string}`;
 const pc = createPublicClient({ chain: arcTestnet, transport: http() });
 const abi = parseAbi([
   "function name() view returns (string)", "function symbol() view returns (string)",
