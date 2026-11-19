@@ -5,17 +5,12 @@
 // locally that the signature recovers to the Circle wallet's address and that our
 // EIP-712 domain matches the token's onchain DOMAIN_SEPARATOR. Nothing is broadcast,
 // so this needs no funds.
-import { realpathSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { initiateDeveloperControlledWalletsClient } from "@circle-fin/developer-controlled-wallets";
 import { createPublicClient, hashDomain, http, parseAbi, recoverTypedDataAddress, getAddress } from "viem";
 import { arcTestnet } from "viem/chains";
-import { config } from "dotenv";
+import { USDC_ADDRESS as USDC, requireEnv as env } from "@asf/shared";
 
-config({ path: realpathSync(".env"), quiet: true });
-const env = (k: string) => process.env[k] ?? (() => { throw new Error(`Missing ${k}`); })();
-
-const USDC = "0x3600000000000000000000000000000000000000" as const;
 const domain = { name: "USDC", version: "2", chainId: arcTestnet.id, verifyingContract: USDC } as const;
 const types = {
   TransferWithAuthorization: [

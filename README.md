@@ -376,7 +376,7 @@ Then create the wallets:
 
 ```bash
 npm run wallets:setup      # creates the firewall's Circle wallet and the baseline's throwaway key; writes them to .env
-npm run wallets:balances   # shows both addresses and their USDC balances
+npm run wallets:balances   # shows both addresses with their wallet and Gateway USDC balances
 ```
 
 ### 3. Fund the wallets
@@ -385,9 +385,9 @@ npm run wallets:balances   # shows both addresses and their USDC balances
 2. Deposit into Circle Gateway, which nanopayments are paid from:
 
 ```bash
-npm run spike:pay          # firewall wallet: deposits 5 USDC into GatewayWallet if its Gateway balance is under 1,
-                           # then makes one real $0.001 nanopayment end to end as a check
+npm run gateway:deposit    # firewall wallet: deposits 5 USDC into GatewayWallet if its Gateway balance is under 1
 npm run baseline:deposit   # unsafe baseline: deposits 2 USDC into Gateway (only needed for demo scene 3)
+npm run wallets:balances   # check: both Gateway balances should now show the deposit
 ```
 
 ---
@@ -434,7 +434,6 @@ Useful scripts:
 | `npm run check:vendors` | Print the 402 quote each shady mode returns, then pay the honest vendor once per endpoint through the firewall ($0.003; `-- --quotes-only` to skip paying) |
 | `npm run build:site` | Build `site/`, a static read-only replay of a recorded run's dashboard (scene by scene, no wallet or keys behind it; see [`docs/hosting.md`](docs/hosting.md)) |
 | `npm run watchdog:stream` / `watchdog:simulate` / `watchdog:rogue` / `tunnel` | Set up the QuickNode Stream for the onchain watchdog, send it a simulated signed delivery, send a real rogue transfer, or open the webhook tunnel (see [Watchdog](#watchdog-quicknode-streams)) |
-| `npm run spike:sign` / `spike:usdc` | The M0 spikes that proved Circle's wallet can sign Arc USDC authorizations and checked the token's EIP-712 domain. `spike:pay` (above) is the one still used for setup |
 | `npm run docs:limits` | Regenerate this README's safety-limits tables from `config/` (`-- --check` to verify) |
 | `npm run typecheck` | TypeScript check of all packages and scripts |
 
@@ -466,7 +465,7 @@ packages/
 scripts/                 the demo launcher and scene runner, task launcher, wallet setup and deposits,
                          watchdog and tunnel helpers, replay build, README limits generator
   lib/                   code shared by those scripts
-  spikes/                the M0 experiments (spike:pay is still the Gateway deposit step)
+  spikes/                the M0 experiments, kept as evidence for docs/SPEC.md (not used by setup or the demo)
   test/                  tests for the scripts (README limits drift, replay build)
 docs/
   TESTING.md             how to verify the project: no keys, read the chain, or a full live run

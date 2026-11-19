@@ -7,26 +7,23 @@
 //
 // Safe to re-run: anything already in .env is reused, not recreated.
 import { appendFileSync, existsSync, realpathSync } from "node:fs";
+import { resolve } from "node:path";
 import { initiateDeveloperControlledWalletsClient } from "@circle-fin/developer-controlled-wallets";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
-import { config } from "dotenv";
+import { REPO_ROOT, loadEnv, requireEnv } from "@asf/shared";
 
-if (!existsSync(".env")) {
-  console.error("No .env in this directory. Run `cp .env.example .env` in the repo root and fill in TEST_API_KEY and ENTITY_SECRET first (see docs/TESTING.md).");
+const envFile = resolve(REPO_ROOT, ".env");
+if (!existsSync(envFile)) {
+  console.error(`No ${envFile}. Run \`cp .env.example .env\` in the repo root and fill in TEST_API_KEY and ENTITY_SECRET first (see docs/TESTING.md).`);
   process.exit(1);
 }
-const ENV_PATH = realpathSync(".env");
-config({ path: ENV_PATH, quiet: true });
-
-function need(name: string): string {
-  const v = process.env[name];
-  if (!v) throw new Error(`Missing ${name} in .env`);
-  return v;
-}
+// .env may be a symlink into the main checkout; append to the real file.
+const ENV_PATH = realpathSync(envFile);
+loadEnv();
 
 const client = initiateDeveloperControlledWalletsClient({
-  apiKey: need("TEST_API_KEY"),
-  entitySecret: need("ENTITY_SECRET"),
+  apiKey: requireEnv("TEST_API_KEY"),
+  entitySecret: requireEnv("ENTITY_SECRET"),
 });
 
 const added: string[] = [];

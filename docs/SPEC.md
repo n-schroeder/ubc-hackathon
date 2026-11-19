@@ -155,7 +155,7 @@ As built (the README's "Project layout" section says what is inside each package
 │   └── redteam/
 ├── scripts/                  # demo runner, task launcher, wallet setup, Gateway deposits, watchdog, replay build
 │   ├── lib/                  # code shared by the scripts
-│   ├── spikes/               # M0 spikes
+│   ├── spikes/               # M0 spikes (historical; see its README)
 │   └── test/                 # tests for the scripts
 ├── .env.example              # every env var, no values
 └── package.json              # npm workspaces
@@ -287,7 +287,7 @@ interface Signer {
 }
 ```
 
-- `CircleWalletSigner`: Circle Developer-Controlled Wallet; signs through Circle's API, so no key ever exists in our process. **Chosen.** Verified 2026-11-17 by `scripts/spikes/circle-sign-eip3009.ts`: Circle's `signTypedData` produced an EIP-3009 `TransferWithAuthorization` for Arc testnet USDC that recovers to the wallet address, and our EIP-712 domain matches the token's onchain `DOMAIN_SEPARATOR`. Gateway's batched-payment typed data verified 2026-11-17 by `scripts/spikes/gateway-nanopayment.ts` (`npm run spike:pay`): `BatchEvmScheme` from `@circle-fin/x402-batching/client` accepts `CircleWalletSigner` as its `BatchEvmSigner`, and a $0.001 payment settled through the testnet Gateway facilitator (signing ≈450 ms through Circle's API, paid request ≈300 ms).
+- `CircleWalletSigner`: Circle Developer-Controlled Wallet; signs through Circle's API, so no key ever exists in our process. **Chosen.** Verified 2026-11-17 by `scripts/spikes/circle-sign-eip3009.ts`: Circle's `signTypedData` produced an EIP-3009 `TransferWithAuthorization` for Arc testnet USDC that recovers to the wallet address, and our EIP-712 domain matches the token's onchain `DOMAIN_SEPARATOR`. Gateway's batched-payment typed data verified 2026-11-17 by `scripts/spikes/gateway-nanopayment.ts`: `BatchEvmScheme` from `@circle-fin/x402-batching/client` accepts `CircleWalletSigner` as its `BatchEvmSigner`, and a $0.001 payment settled through the testnet Gateway facilitator (signing ≈450 ms through Circle's API, paid request ≈300 ms).
 - `LocalKeySigner`: a raw testnet private key loaded only by the firewall (viem). Planned as a fallback in case Gateway's typed data needed something Circle's API can't sign. **Not built:** M0 showed `CircleWalletSigner` handles everything, so there is no signer choice to configure.
 
 ### 3.7 Demo-only pieces
