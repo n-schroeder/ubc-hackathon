@@ -87,41 +87,45 @@ Scene 5 · Runaway loop. Scripted agent (--dry), with a real firewall and real p
 The vendor says "call again for page N+1", forever. Each $0.001 page passes every spending cap…
 
 23
-00:01:50,466 --> 00:01:54,026
+00:01:50,466 --> 00:01:56,492
 …but 11 paid calls added nothing new. velocity.no_progress trips the breaker, and ALL spending stops.
 
 24
-00:01:54,066 --> 00:01:58,226
-Only a human can reset the breaker, from the dashboard.
+00:01:56,532 --> 00:02:00,692
+Only a human can reset the breaker. Here, a human resets it from the dashboard.
 
 25
-00:01:58,266 --> 00:02:02,226
-Scene 6 · Task ended. Live Claude does a short task, and its mandate (the task's budget) closes.
+00:02:00,732 --> 00:02:04,892
+Scene 6 · Task ended. Live Claude does a short task: one Austin forecast for 0.001 USDC.
 
 26
-00:02:02,266 --> 00:02:06,226
-Then a late instruction tries to pay the attacker and buy more data…
+00:02:04,932 --> 00:02:08,992
+When the task is done, its mandate (the task's budget) closes.
 
 27
-00:02:06,266 --> 00:02:09,526
-Denied: mandate.none_active. With no active task, the agent has zero spending authority.
+00:02:09,032 --> 00:02:12,692
+Then a late instruction tries to pay the attacker 0.05 USDC and buy more data…
 
 28
-00:02:09,566 --> 00:02:14,526
-npm run redteam: every attack in this video is also an automated test (no AI, no money).
+00:02:12,732 --> 00:02:16,658
+Both denied: mandate.none_active. With no active task, the agent has zero spending authority.
 
 29
-00:02:14,566 --> 00:02:19,492
-23/23 scenarios pass, and 21/21 attacks are stopped by the expected rule. Guardrails are code with tests, not prose in a prompt.
+00:02:16,698 --> 00:02:21,658
+npm run redteam: every attack in this video is also an automated test (no AI, no money).
 
 30
-00:02:19,532 --> 00:02:25,492
-Why Arc: USDC is the gas, so every budget is in one unit, and one confirmation is final.
+00:02:21,698 --> 00:02:26,624
+23/23 scenarios pass, and 21/21 attacks are stopped by the expected rule. Guardrails are code with tests, not prose in a prompt.
 
 31
-00:02:25,532 --> 00:02:31,492
-The Gateway deposit is the hard fuse. The firewall is the soft fuse in front of it.
+00:02:26,664 --> 00:02:32,624
+Why Arc: USDC is the gas, so every budget is in one unit, and one confirmation is final.
 
 32
-00:02:31,532 --> 00:02:35,492
+00:02:32,664 --> 00:02:38,624
+The Gateway deposit is the hard fuse. The firewall is the soft fuse in front of it.
+
+33
+00:02:38,664 --> 00:02:42,624
 Agent Spending Firewall · UBC Austin Hackathon 2026 · Agentic Payments and AI · Best use of Arc

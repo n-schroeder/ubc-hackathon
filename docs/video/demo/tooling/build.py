@@ -10,7 +10,7 @@ SEG = os.path.join(HERE, "segs"); os.makedirs(SEG, exist_ok=True)
 BG = "0x0b0d12"
 
 # (name, source, kind, start, end, speed, hold, captions[(t0, t1, text)]) ; times in OUTPUT seconds of the segment
-# kind: stage (as recorded), still (fit into the area above the caption bar), web (zoom into the top-left)
+# kind: stage (as recorded), still (fit into the area above the caption bar), web (top-left 1280x720, fit above the caption bar)
 SEGS = [
   ("01_title", "st1", "still", 0, None, 1, 4.0, [
     (0, 4.0, "Agent Spending Firewall: an AI agent that pays for APIs with USDC on Arc testnet, but holds no keys."),
@@ -50,16 +50,20 @@ SEGS = [
     (9.7, 12.5, "price_creep: now the vendor raises its price 25% on every quote…"),
     (12.5, 19.6, "Denied: preflight.price_drift (over +20% vs. the last price paid), then price_out_of_band (over +50% vs. the registry)."),
   ]),
-  ("10_loop", "s5", "stage", 0, 18.7, 1.0, 0, [
+  # split at 14.5 s and freeze on the OPEN breaker; a human resets it ~0.3 s into 10b
+  ("10_loop", "s5", "stage", 0, 14.5, 1.0, 2.5, [
     (0, 3.5, "Scene 5 · Runaway loop. Scripted agent (--dry), with a real firewall and real payments."),
     (3.5, 10.9, "The vendor says \"call again for page N+1\", forever. Each $0.001 page passes every spending cap…"),
-    (10.9, 14.5, "…but 11 paid calls added nothing new. velocity.no_progress trips the breaker, and ALL spending stops."),
-    (14.5, 18.7, "Only a human can reset the breaker, from the dashboard."),
+    (10.9, 17.0, "…but 11 paid calls added nothing new. velocity.no_progress trips the breaker, and ALL spending stops."),
   ]),
-  ("11_ended", "s6", "stage", 0, 11.3, 1.0, 0, [
-    (0, 4.0, "Scene 6 · Task ended. Live Claude does a short task, and its mandate (the task's budget) closes."),
-    (4.0, 8.0, "Then a late instruction tries to pay the attacker and buy more data…"),
-    (8.0, 11.3, "Denied: mandate.none_active. With no active task, the agent has zero spending authority."),
+  ("10b_reset", "s5", "stage", 14.5, 18.7, 1.0, 0, [
+    (0, 4.2, "Only a human can reset the breaker. Here, a human resets it from the dashboard."),
+  ]),
+  ("11_ended", "s6", "stage", 0, 12.8, 1.0, 3.2, [
+    (0, 4.2, "Scene 6 · Task ended. Live Claude does a short task: one Austin forecast for 0.001 USDC."),
+    (4.2, 8.3, "When the task is done, its mandate (the task's budget) closes."),
+    (8.3, 12.0, "Then a late instruction tries to pay the attacker 0.05 USDC and buy more data…"),
+    (12.0, 16.0, "Both denied: mandate.none_active. With no active task, the agent has zero spending authority."),
   ]),
   ("12_redteam", "s7", "stage", 0, 8.3, 1.0, 1.7, [
     (0, 5.0, "npm run redteam: every attack in this video is also an automated test (no AI, no money)."),
@@ -92,7 +96,7 @@ for name, src, kind, ss, to, speed, hold, caps in SEGS:
         args = ["ffmpeg", "-y", "-loglevel", "error", "-loop", "1", "-t", str(hold), "-i", img, "-vf", vf]
     else:
         vf = []
-        if kind == "web": vf.append(f"crop=1280:720:0:0,scale=1920:1080")
+        if kind == "web": vf.append(f"crop=1280:720:0:0,scale=1693:952,pad=1920:1080:113:0:color={BG}")
         vf.append(f"setpts=(PTS-STARTPTS)/{speed}")
         if hold: vf.append(f"tpad=stop_mode=clone:stop_duration={hold}")
         vf += ["fps=30", "format=yuvj420p"]
@@ -129,6 +133,6 @@ lst = os.path.join(SEG, "list.txt"); open(lst, "w").write("".join(f"file '{f}'\n
 final = os.path.join(OUT, "agent-spending-firewall-demo.mp4")
 run(["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", lst,
      "-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000",
-     "-vf", f"ass={assp},format=yuv420p", "-c:v", "libopenh264", "-b:v", "4M", "-maxrate", "8M", "-r", "30",
+     "-vf", f"ass={assp},format=yuv420p", "-c:v", "libopenh264", "-b:v", "6M", "-maxrate", "10M", "-r", "30",
      "-c:a", "aac", "-b:a", "64k", "-shortest", "-movflags", "+faststart", final])
 print("wrote", final, f"{dur(final):.2f}s")
