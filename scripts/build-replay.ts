@@ -32,7 +32,7 @@ const REPLAY = resolve(REPO_ROOT, "packages/firewall/replay");
 
 function readJson(path: string): any {
   if (!existsSync(path)) {
-    console.error(`missing ${relative(REPO_ROOT, path)}: export the recorded run's GET /ledger?limit=1000 and GET /mandates there (see docs/hosting.md)`);
+    console.error(`missing ${relative(REPO_ROOT, path)}: export the recorded run's GET /ledger?limit=1000 and GET /mandates there`);
     process.exit(1);
   }
   return JSON.parse(readFileSync(path, "utf8"));
@@ -98,4 +98,4 @@ console.log(`  ${data.takes.length} takes · ${m.rows} decisions (${m.approved} 
 console.log(`  ${data.takes.map((t) => `${t.id}${t.scene ? "" : " (unmatched task)"}`).join(" ")}`);
 console.log(`  secret scan: clean (${needles.length} .env values + key patterns, ${files.length} files)`);
 if (m.explorerLinks < m.approved) console.log(`  note: ${m.approved - m.explorerLinks} paid rows have no explorer link yet (Gateway settles in batches); re-export the ledger later for more`);
-console.log(`  preview: python3 -m http.server -d ${relative(REPO_ROOT, outDir)} 8788  ·  publish: docs/hosting.md`);
+console.log(`  preview: python3 -m http.server -d ${relative(REPO_ROOT, outDir)} 8788  ·  publish: upload site/ to any static host`);

@@ -46,7 +46,7 @@ export const DEFAULT_MODEL = "claude-sonnet-5-5";
 // attack on camera. Nothing here sets limits or tells the agent to be suspicious *before* it pays; that is the
 // firewall's job, not the agent's. The one rule about denials only shapes what the agent says *after* the
 // firewall has said no. Without it, live Claude ended scene 3 by suggesting the viewer allowlist the attacker
-// or pay the "access fee" themselves (docs/rehearsal.md, rough edge 3).
+// or pay the "access fee" themselves (seen in the 2026-11-18 dress rehearsal).
 export const SYSTEM_PROMPT = `You are an autonomous assistant that completes tasks by buying data from paid services.
 
 How you work:
