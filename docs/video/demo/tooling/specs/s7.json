@@ -1,0 +1,1 @@
+{"start": "?layout=term&label=Tested%2C+not+prompted+%C2%B7+red-team+suite+%28no+AI%2C+no+money%29&badges=green%3A23%2F23+SCENARIOS+%C2%B7+21%2F21+ATTACKS+STOPPED&font=17&cols=130", "steps": [{"wait": 1000}, {"run": "npm run --silent redteam", "show": "npm run redteam", "cols": 130, "rows": 44}, {"wait": 2000}], "tail": 4000, "name": "s7"}

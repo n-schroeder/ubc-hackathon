@@ -1,0 +1,1 @@
+{"start": "?layout=term&label=Scene+3+%C2%B7+Prompt+injection%3A+a+paywall+scam&badges=red%3AWITHOUT+FIREWALL%7Cgrey%3ALIVE+CLAUDE+SONNET+%C2%B7+AGENT+HOLDS+ITS+OWN+KEY&font=19&cols=120", "steps": [{"wait": 1500}, {"run": "npm run --silent demo:scene -- 3 --only unsafe", "show": "npm run demo:scene -- 3 --only unsafe", "cols": 120}], "tail": 3000, "name": "s3a"}
