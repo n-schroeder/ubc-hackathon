@@ -1,0 +1,62 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>stage</title>
+<link rel="stylesheet" href="/xterm/xterm/css/xterm.css">
+<style>
+  :root { --bar: 56px; --cap: 128px; }
+  html, body { margin: 0; background: #0b0d12; color: #e6e8ee; font-family: "Inter", "Noto Sans", system-ui, sans-serif; overflow: hidden; }
+  #top { height: var(--bar); display: flex; align-items: center; gap: 16px; padding: 0 24px; border-bottom: 1px solid #222734; box-sizing: border-box; }
+  #scene { font-size: 22px; font-weight: 650; letter-spacing: .2px; }
+  .badge { font-size: 16px; font-weight: 700; padding: 5px 12px; border-radius: 6px; letter-spacing: .6px; }
+  .red { background: #4a1418; color: #ff8a8a; border: 1px solid #b33a3a; }
+  .green { background: #10361f; color: #7ee2a0; border: 1px solid #2f9a58; }
+  .grey { background: #1d2230; color: #aab3c5; border: 1px solid #39415a; }
+  #main { position: absolute; top: var(--bar); bottom: var(--cap); left: 0; right: 0; display: flex; }
+  #dash { border: 0; height: 100%; background: #0b0d12; }
+  #termwrap { flex: 1; height: 100%; box-sizing: border-box; padding: 12px 14px; background: #0d1017; border-left: 1px solid #222734; min-width: 0; }
+  #term { height: 100%; }
+  #cap { position: absolute; left: 0; right: 0; bottom: 0; height: var(--cap); background: #06070a; border-top: 1px solid #222734; }
+  body.term #dash { display: none; }
+  body.term #termwrap { border-left: 0; }
+  body.dash #termwrap { display: none; }
+  body.dash #dash { width: 100%; }
+</style></head>
+<body>
+<div id="top"><span id="scene"></span><span id="badges"></span></div>
+<div id="main"><iframe id="dash"></iframe><div id="termwrap"><div id="term"></div></div></div>
+<div id="cap"></div>
+<script src="/xterm/xterm/lib/xterm.js"></script>
+<script>
+const q = new URLSearchParams(location.search);
+const layout = q.get("layout") || "split";
+document.body.className = layout;
+document.getElementById("scene").textContent = q.get("label") || "";
+for (const b of (q.get("badges") || "").split("|").filter(Boolean)) {
+  const [cls, text] = b.split(":"); const s = document.createElement("span");
+  s.className = "badge " + cls; s.textContent = text; s.style.marginRight = "10px";
+  document.getElementById("badges").appendChild(s);
+}
+const dashW = Number(q.get("dashw") || 1140);
+document.getElementById("dash").style.width = layout === "split" ? dashW + "px" : "";
+const zoom = Number(q.get("zoom") || 1);
+fetch("/config").then(r => r.json()).then(c => { if (layout !== "term") document.getElementById("dash").src = c.dash; });
+
+const term = new Terminal({
+  fontFamily: '"JetBrainsMono Nerd Font Mono", "Noto Sans Mono", monospace', fontSize: Number(q.get("font") || 15),
+  lineHeight: 1.12, cursorBlink: false, convertEol: true, scrollback: 2000, cols: Number(q.get("cols") || 84), rows: 40,
+  theme: { background: "#0d1017", foreground: "#d8dce6", cursor: "#0d1017" },
+});
+term.open(document.getElementById("term"));
+// size rows to the box
+const fitRows = () => {
+  const el = document.getElementById("term"); const cell = term._core._renderService.dimensions.css.cell;
+  if (cell.height) term.resize(Number(q.get("cols") || 84), Math.floor(el.clientHeight / cell.height));
+};
+setTimeout(fitRows, 200);
+window.termCols = () => term.cols; window.termRows = () => term.rows;
+const es = new EventSource("/stream");
+es.addEventListener("cmd", e => { const { show } = JSON.parse(e.data); term.write(`\x1b[1;32m$\x1b[0m ${show}\r\n`); });
+es.addEventListener("out", e => term.write(JSON.parse(e.data)));
+es.addEventListener("exit", () => term.write(`\x1b[1;32m$\x1b[0m `));
+window.stageReady = true;
+</script>
+</body></html>

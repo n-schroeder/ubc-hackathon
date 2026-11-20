@@ -1,0 +1,1 @@
+{"start": "?layout=split&label=Scene+6+%C2%B7+Task+ended%3A+zero+authority+after+the+task&badges=grey%3ALIVE+CLAUDE+SONNET%7Cgreen%3AWITH+FIREWALL", "steps": [{"eval": "document.documentElement.style.zoom='0.86'; 1", "frame": "4020"}, {"wait": 1500}, {"run": "npm run --silent demo:scene -- 6", "show": "npm run demo:scene -- 6"}], "tail": 3000, "name": "s6"}

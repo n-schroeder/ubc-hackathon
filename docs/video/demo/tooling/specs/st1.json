@@ -1,0 +1,1 @@
+{"name":"st1","start":"http://127.0.0.1:4030/stills.html#1","settle":2500,"steps":[{"eval":"document.querySelector('.hud')?.remove(); location.href"},{"wait":1500}],"tail":300}
