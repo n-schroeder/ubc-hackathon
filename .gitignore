@@ -10,3 +10,6 @@ data/
 # static replay build output (npm run build:site)
 site/
 
+
+# Devpost submission answers (drafted locally, never committed)
+devpost-answers.md
