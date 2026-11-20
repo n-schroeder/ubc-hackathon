@@ -10,3 +10,17 @@ data/
 # static replay build output (npm run build:site)
 site/
 
+
+# Devpost submission answers (drafted locally, never committed)
+devpost-answers.md
+
+# Internal docs kept on disk but not published (submission drafts, video prep, rehearsal notes)
+docs/devpost.md
+docs/video-script.md
+docs/video/
+docs/hosting.md
+docs/rehearsal.md
+# rehearsal/raw/ keeps only ledger.json and mandates.json, the replay build's inputs
+docs/rehearsal/raw/*
+!docs/rehearsal/raw/ledger.json
+!docs/rehearsal/raw/mandates.json

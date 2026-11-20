@@ -432,7 +432,7 @@ Useful scripts:
 | `npm run firewall` / `npm run vendors` | Start one piece on its own (`npm run demo` starts both). `npm run vendor:honest` / `vendor:shady` start a single vendor |
 | `npm run agent -- --mandate <id>` | Run the agent against a mandate you created yourself (for example with the dashboard's "Start a task" form). `npm run task` does both steps for you |
 | `npm run check:vendors` | Print the 402 quote each shady mode returns, then pay the honest vendor once per endpoint through the firewall ($0.003; `-- --quotes-only` to skip paying) |
-| `npm run build:site` | Build `site/`, a static read-only replay of a recorded run's dashboard (scene by scene, no wallet or keys behind it; see [`docs/hosting.md`](docs/hosting.md)) |
+| `npm run build:site` | Build `site/`, a static read-only replay of a recorded run's dashboard (scene by scene, no wallet or keys behind it; built from `docs/rehearsal/raw/`) |
 | `npm run watchdog:stream` / `watchdog:simulate` / `watchdog:rogue` / `tunnel` | Set up the QuickNode Stream for the onchain watchdog, send it a simulated signed delivery, send a real rogue transfer, or open the webhook tunnel (see [Watchdog](#watchdog-quicknode-streams)) |
 | `npm run docs:limits` | Regenerate this README's safety-limits tables from `config/` (`-- --check` to verify) |
 | `npm run typecheck` | TypeScript check of all packages and scripts |
@@ -470,10 +470,7 @@ scripts/                 the demo launcher and scene runner, task launcher, wall
 docs/
   TESTING.md             how to verify the project: no keys, read the chain, or a full live run
   SPEC.md                the original build plan, with notes on what was actually built
-  devpost.md             submission text
-  video-script.md        narration and shot list for the demo video; video/stills.html has its title cards
-  rehearsal.md           the dress rehearsal on Arc testnet; rehearsal/raw/ holds its logs and ledger
-  hosting.md             how to publish the static replay
+  rehearsal/raw/         the recorded Arc testnet run (ledger.json, mandates.json) the static replay is built from
 ```
 
 Each package's tests are in its own `test/` folder; `npm test` runs them all. Two folders are created at runtime and are gitignored: `data/` (the ledger `firewall.db`, generated watchdog files) and `site/` (the replay build).
